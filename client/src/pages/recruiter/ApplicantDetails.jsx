@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import Breadcrumb from '../../components/common/Breadcrumb.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
+import { useAuth } from '../../context/AuthContext.jsx'
 import api from '../../services/api.js'
 
 const STAGES = ['Applied', 'Shortlisted', 'Interview', 'Selected', 'Rejected']
@@ -50,6 +51,7 @@ function getFitBadge(score, recommendation) {
 
 export default function ApplicantDetails() {
   const { id } = useParams()
+  const { user } = useAuth()
   const { showToast } = useToast()
   const [application, setApplication] = useState(null)
   const [status, setStatus] = useState('Applied')

@@ -98,6 +98,7 @@ export default function AppRoutes() {
             <Route path="messages" element={<StudentMessages />} />
             <Route path="saved" element={<StudentSavedJobs />} />
             <Route path="notifications" element={<StudentNotifications />} />
+            <Route path="ai-suite" element={<AICareerSuite />} />
             <Route path="career-recommendations" element={<CareerRecommendations />} />
             <Route path="skill-gap" element={<SkillGapAnalysis />} />
             <Route path="learning-roadmap" element={<LearningRoadmap />} />

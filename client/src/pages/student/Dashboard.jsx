@@ -12,6 +12,7 @@ const navItems = [
   { to: '/student/dashboard/saved', label: 'Saved Jobs', icon: Bookmark },
   { to: '/student/dashboard/notifications', label: 'Notifications', icon: Bell },
   { heading: 'AI CAREER TOOLS' },
+  { to: '/student/dashboard/ai-suite', label: 'AI Career Studio (All-in-One)', icon: Sparkles },
   { to: '/student/dashboard/resume-analyzer', label: 'Resume & ATS Score', icon: FileText },
   { to: '/student/dashboard/cover-letter', label: 'Cover Letter Generator', icon: FileEdit },
   { to: '/student/dashboard/mock-interview', label: 'Mock Interview Simulator', icon: MessageSquareCode },
