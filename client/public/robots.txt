@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /student/
+Disallow: /recruiter/
+Disallow: /admin/
+
+Sitemap: https://www.careerhub.com/sitemap.xml

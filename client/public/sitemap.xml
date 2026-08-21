@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://www.careerhub.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.careerhub.com/jobs</loc><changefreq>hourly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.careerhub.com/internships</loc><changefreq>hourly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.careerhub.com/companies</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.careerhub.com/articles</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.careerhub.com/interview-questions</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.careerhub.com/about</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.careerhub.com/contact</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+  <!--
+    Job posting, company, article, and interview-topic URLs should be added here
+    dynamically once the backend exists — generate this file server-side (or via
+    a build script) from your database instead of maintaining it by hand.
+  -->
+</urlset>
