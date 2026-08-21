@@ -13,6 +13,9 @@ const {
   startMockInterview,
   evaluateInterviewAnswer,
   calculateApplicantMatch,
+  generateJobDescription,
+  generateSkillQuiz,
+  evaluateSkillQuiz,
 } = require('../services/aiService')
 
 /**
@@ -310,6 +313,70 @@ const batchMatchApplicantsHandler = asyncHandler(async (req, res) => {
   })
 })
 
+// @route   POST /api/ai/generate-job-description
+// @access  Private (recruiter or admin)
+const generateJobDescriptionHandler = asyncHandler(async (req, res) => {
+  const { prompt, roleTitle, experienceLevel, workMode, keySkills, extraNotes } = req.body
+  const jobData = await generateJobDescription({
+    prompt,
+    roleTitle,
+    experienceLevel,
+    workMode,
+    keySkills,
+    extraNotes,
+  })
+  res.json({ success: true, job: jobData })
+})
+
+// @route   POST /api/ai/skill-quiz/generate
+// @access  Private
+const generateSkillQuizHandler = asyncHandler(async (req, res) => {
+  const { skill, level } = req.body
+  if (!skill) {
+    res.status(400)
+    throw new Error('Skill is required to generate assessment')
+  }
+  const quiz = await generateSkillQuiz(skill, level || 'Intermediate')
+  res.json({ success: true, quiz })
+})
+
+// @route   POST /api/ai/skill-quiz/submit
+// @access  Private
+const submitSkillQuizHandler = asyncHandler(async (req, res) => {
+  const { skill, userAnswers, questions } = req.body
+  if (!skill || !questions) {
+    res.status(400)
+    throw new Error('Skill and quiz questions are required')
+  }
+
+  const result = evaluateSkillQuiz(skill, userAnswers, questions)
+
+  // If passed, persist verified skill to User profile in MongoDB
+  if (result.passed && req.user) {
+    const user = await User.findById(req.user._id)
+    if (user) {
+      if (!user.verifiedSkills) user.verifiedSkills = []
+      const existingIdx = user.verifiedSkills.findIndex(
+        (v) => v.skill.toLowerCase() === skill.toLowerCase()
+      )
+      const verifiedRecord = {
+        skill,
+        verifiedAt: new Date(),
+        score: result.score,
+        badgeLevel: result.badgeLevel,
+      }
+      if (existingIdx >= 0) {
+        user.verifiedSkills[existingIdx] = verifiedRecord
+      } else {
+        user.verifiedSkills.push(verifiedRecord)
+      }
+      await user.save()
+    }
+  }
+
+  res.json({ success: true, evaluation: result })
+})
+
 module.exports = {
   getCareerRecommendationsHandler,
   analyzeSkillGapHandler,
@@ -321,4 +388,7 @@ module.exports = {
   evaluateInterviewAnswerHandler,
   calculateApplicantMatchHandler,
   batchMatchApplicantsHandler,
+  generateJobDescriptionHandler,
+  generateSkillQuizHandler,
+  submitSkillQuizHandler,
 }

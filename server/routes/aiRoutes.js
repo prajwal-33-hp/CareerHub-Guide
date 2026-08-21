@@ -11,6 +11,9 @@ const {
   evaluateInterviewAnswerHandler,
   calculateApplicantMatchHandler,
   batchMatchApplicantsHandler,
+  generateJobDescriptionHandler,
+  generateSkillQuizHandler,
+  submitSkillQuizHandler,
 } = require('../controllers/aiController')
 const { protect } = require('../middleware/auth')
 
@@ -45,5 +48,12 @@ router.post('/mock-interview/evaluate', evaluateInterviewAnswerHandler)
 // Recruiter AI Applicant Match Analysis & Batch Ranking
 router.post('/applicant-match/:applicationId', calculateApplicantMatchHandler)
 router.post('/batch-match/:jobId', batchMatchApplicantsHandler)
+
+// 1-Click AI Job Description Generator for Recruiters
+router.post('/generate-job-description', generateJobDescriptionHandler)
+
+// Interactive Skill Assessment Quizzes & Badges
+router.post('/skill-quiz/generate', generateSkillQuizHandler)
+router.post('/skill-quiz/submit', submitSkillQuizHandler)
 
 module.exports = router
