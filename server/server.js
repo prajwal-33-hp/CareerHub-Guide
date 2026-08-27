@@ -36,29 +36,41 @@ app.use(
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 )
+
+// --- Allowed CORS origins ---
 const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:5174',
+  process.env.CLIENT_URL,
+  'https://careerhub-guide-2.onrender.com',
   'http://localhost:5174',
   'http://127.0.0.1:5174',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-]
+].filter(Boolean)
 
+// --- CORS ---
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin
+      // (Postman, server-to-server requests, etc.)
       if (!origin) {
         return callback(null, true)
       }
 
       const originUrl = new URL(origin)
-      const isLocalhost = ['localhost', '127.0.0.1'].includes(originUrl.hostname)
+
+      const isLocalhost = ['localhost', '127.0.0.1'].includes(
+        originUrl.hostname
+      )
+
       const isDevPort = originUrl.port.startsWith('517')
 
+      // Allow local development
       if (isLocalhost && isDevPort) {
         return callback(null, true)
       }
 
+      // Allow production frontend
       if (allowedOrigins.includes(origin)) {
         return callback(null, true)
       }
@@ -68,10 +80,13 @@ app.use(
     credentials: true,
   })
 )
+
 app.use(express.json({ limit: '10kb' }))
 
+// --- Uploads folder ---
 const uploadsPath = path.join(__dirname, 'uploads')
 const fs = require('fs')
+
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true })
 }
@@ -85,25 +100,38 @@ app.use(
     },
   })
 )
-if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'))
 
-// Rate limit: applies to all /api routes, generous enough for normal use
-// but blocks brute-force login attempts and scraping
+// --- Logging ---
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'))
+}
+
+// --- Rate limit ---
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many requests, please try again later.' },
+  message: {
+    success: false,
+    message: 'Too many requests, please try again later.',
+  },
 })
+
 app.use('/api', apiLimiter)
 
 // --- Initialize Socket.io ---
 initSocket(server, allowedOrigins)
 
-// --- Routes ---
-app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
+// --- Health check ---
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+  })
+})
 
+// --- Routes ---
 app.use('/api/auth', authRoutes)
 app.use('/api/jobs', jobRoutes)
 app.use('/api/applications', applicationRoutes)
@@ -115,19 +143,24 @@ app.use('/api/ai', aiRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/interviews', interviewRoutes)
+
+// --- Root route ---
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'CareerHub API is running'
-  });
-});
-<<<<<<< HEAD
+    message: 'CareerHub API is running',
+  })
+})
 
-=======
->>>>>>> fdddfae (backend service added to frontend)
 // --- Error handling (must be last) ---
 app.use(notFound)
 app.use(errorHandler)
 
+// --- Start server ---
 const PORT = process.env.PORT || 5000
-server.listen(PORT, () => console.log(`CareerHub API with Real-time WebSockets running on port ${PORT}`))
+
+server.listen(PORT, () => {
+  console.log(
+    `CareerHub API with Real-time WebSockets running on port ${PORT}`
+  )
+})
