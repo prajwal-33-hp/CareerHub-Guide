@@ -115,6 +115,12 @@ app.use('/api/ai', aiRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/interviews', interviewRoutes)
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'CareerHub API is running'
+  });
+});
 
 // --- Error handling (must be last) ---
 app.use(notFound)
