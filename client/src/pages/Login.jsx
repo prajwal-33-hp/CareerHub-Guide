@@ -42,7 +42,7 @@ export default function Login() {
   }, [searchParams])
 
   function handleGoogleLogin() {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://careerhub-guide.onrender.com/api'
     window.location.href = `${baseUrl}/auth/google?role=${encodeURIComponent(selectedRole || 'student')}`
   }
 

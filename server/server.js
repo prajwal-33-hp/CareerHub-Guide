@@ -121,7 +121,10 @@ app.get('/', (req, res) => {
     message: 'CareerHub API is running'
   });
 });
+<<<<<<< HEAD
 
+=======
+>>>>>>> fdddfae (backend service added to frontend)
 // --- Error handling (must be last) ---
 app.use(notFound)
 app.use(errorHandler)

@@ -34,7 +34,7 @@ export default function Register() {
   const passwordValue = watch('password') || ''
 
   function handleGoogleSignUp() {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://careerhub-guide.onrender.com/api'
     window.location.href = `${baseUrl}/auth/google?role=${encodeURIComponent(selectedRole || 'student')}`
   }
 

@@ -62,7 +62,7 @@ function verifySignedState(state) {
  */
 function getGoogleAuthUrl(role = 'student', clientUrl = null) {
   const clientId = process.env.GOOGLE_CLIENT_ID
-  const redirectUri = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'
+  const redirectUri = process.env.GOOGLE_CALLBACK_URL || 'https://careerhub-guide.onrender.com/api/auth/google/callback'
 
   if (!clientId) {
     throw new Error('GOOGLE_CLIENT_ID is not configured in backend environment.')
@@ -89,7 +89,7 @@ function getGoogleAuthUrl(role = 'student', clientUrl = null) {
 async function exchangeCodeForTokens(code) {
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-  const redirectUri = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'
+  const redirectUri = process.env.GOOGLE_CALLBACK_URL || 'https://careerhub-guide.onrender.com/api/auth/google/callback'
 
   if (!clientId || !clientSecret) {
     throw new Error('Google OAuth credentials (GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET) are missing.')
