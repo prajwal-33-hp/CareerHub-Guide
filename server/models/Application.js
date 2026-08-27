@@ -20,6 +20,7 @@ const applicationSchema = new mongoose.Schema(
       default: 'Pending Analysis',
     },
     aiAnalyzedAt: { type: Date },
+    interview: { type: mongoose.Schema.Types.ObjectId, ref: 'Interview' },
   },
   { timestamps: true }
 )

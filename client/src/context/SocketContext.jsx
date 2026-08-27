@@ -67,6 +67,18 @@ export function SocketProvider({ children }) {
       showToast(`🚀 Your application status was updated to: ${application.status}`, 'success')
     })
 
+    socketInstance.on('interview_scheduled', (interview) => {
+      showToast(`📅 New interview scheduled for "${interview.job?.title || 'your application'}"!`, 'success')
+    })
+
+    socketInstance.on('interview_confirmed', (interview) => {
+      showToast(`✅ Candidate confirmed interview slot for "${interview.job?.title || 'your job'}"!`, 'success')
+    })
+
+    socketInstance.on('interview_cancelled', (interview) => {
+      showToast(`⚠️ An interview for "${interview.job?.title || 'a job'}" was cancelled.`, 'danger')
+    })
+
     setSocket(socketInstance)
 
     return () => {

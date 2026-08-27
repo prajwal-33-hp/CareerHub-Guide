@@ -18,6 +18,7 @@ import {
   Briefcase,
   SlidersHorizontal,
 } from 'lucide-react'
+import ScheduleInterviewModal from '../../components/interview/ScheduleInterviewModal.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
 import api from '../../services/api.js'
 
@@ -81,6 +82,7 @@ export default function Applicants() {
   // Drag & drop state
   const [draggingAppId, setDraggingAppId] = useState(null)
   const [dragOverStage, setDragOverStage] = useState(null)
+  const [schedulingApp, setSchedulingApp] = useState(null)
 
   function loadData() {
     setLoading(true)
@@ -467,6 +469,16 @@ export default function Applicants() {
                             </span>
 
                             <div className="flex items-center gap-1">
+                              {/* Schedule Interview Modal Trigger */}
+                              <button
+                                type="button"
+                                onClick={() => setSchedulingApp(app)}
+                                title="Schedule Interview"
+                                className="rounded p-1 text-ink-soft hover:bg-amber-50 hover:text-amber-700 transition-colors"
+                              >
+                                <Calendar size={13} />
+                              </button>
+
                               {/* Direct Message Link */}
                               <Link
                                 to={`/recruiter/dashboard/messages?user=${app.applicant?._id}&job=${app.job?._id}`}
@@ -595,6 +607,13 @@ export default function Applicants() {
 
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSchedulingApp(app)}
+                          className="btn-secondary text-xs inline-flex items-center gap-1 bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100"
+                        >
+                          <Calendar size={13} /> Schedule
+                        </button>
                         <Link
                           to={`/recruiter/dashboard/messages?user=${app.applicant?._id}&job=${app.job?._id}`}
                           className="btn-secondary text-xs inline-flex items-center gap-1"
@@ -615,6 +634,19 @@ export default function Applicants() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Schedule Interview Modal */}
+      {schedulingApp && (
+        <ScheduleInterviewModal
+          isOpen={Boolean(schedulingApp)}
+          onClose={() => setSchedulingApp(null)}
+          application={schedulingApp}
+          onScheduled={() => {
+            loadData()
+            setSchedulingApp(null)
+          }}
+        />
       )}
     </div>
   )

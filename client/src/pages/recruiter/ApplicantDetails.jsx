@@ -16,8 +16,11 @@ import {
   User,
   GraduationCap,
   Video,
+  Calendar,
 } from 'lucide-react'
 import Breadcrumb from '../../components/common/Breadcrumb.jsx'
+import ScheduleInterviewModal from '../../components/interview/ScheduleInterviewModal.jsx'
+import InterviewScheduleCard from '../../components/interview/InterviewScheduleCard.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import api from '../../services/api.js'
@@ -54,18 +57,25 @@ export default function ApplicantDetails() {
   const { user } = useAuth()
   const { showToast } = useToast()
   const [application, setApplication] = useState(null)
+  const [interview, setInterview] = useState(null)
   const [status, setStatus] = useState('Applied')
   const [loading, setLoading] = useState(true)
   const [analyzingAi, setAnalyzingAi] = useState(false)
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
 
   useEffect(() => {
     let mounted = true
-    api
-      .get(`/applications/${id}`)
-      .then(({ data }) => {
+    Promise.all([
+      api.get(`/applications/${id}`),
+      api.get(`/interviews/application/${id}`).catch(() => ({ data: { interview: null } })),
+    ])
+      .then(([appRes, interviewRes]) => {
         if (!mounted) return
-        setApplication(data.application)
-        setStatus(data.application.status)
+        setApplication(appRes.data.application)
+        setStatus(appRes.data.application.status)
+        if (interviewRes.data?.interview) {
+          setInterview(interviewRes.data.interview)
+        }
       })
       .catch(() => { })
       .finally(() => mounted && setLoading(false))
@@ -189,6 +199,14 @@ export default function ApplicantDetails() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Schedule Interview Modal Trigger */}
+            <button
+              onClick={() => setScheduleModalOpen(true)}
+              className="btn-secondary inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100 shadow-xs"
+            >
+              <Calendar size={14} className="text-amber-700" /> Schedule Interview
+            </button>
+
             {/* Live WebRTC Video Interview */}
             <button
               onClick={handleStartVideoInterview}
@@ -239,19 +257,34 @@ export default function ApplicantDetails() {
             <MapPin size={14} className="text-ink-soft" />
             {application.job?.company?.location || 'Remote'}
           </span>
-          {application.applicant.resumeUrl && (
-            <a
-              href={application.applicant.resumeUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="ml-auto inline-flex items-center gap-1.5 font-semibold text-signal-dark hover:underline"
-            >
-              <Download size={14} /> View / Download Resume
-            </a>
-          )}
-        </div>
+            {application.applicant.resumeUrl && (
+              <a
+                href={application.applicant.resumeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="ml-auto inline-flex items-center gap-1.5 font-semibold text-signal-dark hover:underline"
+              >
+                <Download size={14} /> View / Download Resume
+              </a>
+            )}
+          </div>
 
-        {/* AI Fit Match & Scoring Section */}
+          {/* Scheduled Interview Card */}
+          {interview && (
+            <div className="mt-6">
+              <InterviewScheduleCard
+                interview={interview}
+                onUpdated={(updated) => {
+                  setInterview(updated)
+                  if (updated.status === 'scheduled') {
+                    setStatus('Interview')
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* AI Fit Match & Scoring Section */}
         <div className="mt-8 rounded-xl border border-signal/30 bg-signal/5 p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
@@ -454,6 +487,19 @@ export default function ApplicantDetails() {
           </div>
         </div>
       </div>
+
+      {/* Schedule Interview Modal */}
+      {scheduleModalOpen && (
+        <ScheduleInterviewModal
+          isOpen={scheduleModalOpen}
+          onClose={() => setScheduleModalOpen(false)}
+          application={application}
+          onScheduled={(newInterview) => {
+            setInterview(newInterview)
+            setStatus('Interview')
+          }}
+        />
+      )}
     </div>
   )
 }

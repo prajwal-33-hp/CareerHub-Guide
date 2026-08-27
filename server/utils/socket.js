@@ -256,10 +256,29 @@ function emitApplicationStatus(applicantId, application) {
   io.to(`user_${String(applicantId)}`).emit('application_status_changed', application)
 }
 
+function emitInterviewScheduled(candidateId, interview) {
+  if (!io) return
+  io.to(`user_${String(candidateId)}`).emit('interview_scheduled', interview)
+}
+
+function emitInterviewConfirmed(recruiterId, interview) {
+  if (!io) return
+  io.to(`user_${String(recruiterId)}`).emit('interview_confirmed', interview)
+}
+
+function emitInterviewCancelled(userId, interview) {
+  if (!io) return
+  io.to(`user_${String(userId)}`).emit('interview_cancelled', interview)
+}
+
 module.exports = {
   initSocket,
   getIO,
   emitNotification,
   emitMessage,
   emitApplicationStatus,
+  emitInterviewScheduled,
+  emitInterviewConfirmed,
+  emitInterviewCancelled,
 }
+

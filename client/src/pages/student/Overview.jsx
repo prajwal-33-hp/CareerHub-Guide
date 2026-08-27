@@ -7,12 +7,15 @@ import {
   MessageSquareCode,
   Target,
   ArrowRight,
-  TrendingUp,
+  Calendar,
+  Clock,
+  Video,
 } from 'lucide-react'
 import { useSavedJobs } from '../../context/SavedJobsContext.jsx'
 import { useApplications } from '../../context/ApplicationsContext.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import JobCard from '../../components/jobs/JobCard.jsx'
+import InterviewScheduleCard from '../../components/interview/InterviewScheduleCard.jsx'
 import api from '../../services/api.js'
 
 const AI_QUICK_TOOLS = [
@@ -48,39 +51,51 @@ const AI_QUICK_TOOLS = [
 
 export default function Overview() {
   const { user, refreshUser } = useAuth()
-  const { applications } = useApplications()
+  const { applications, refreshApplications } = useApplications()
   const { savedIds } = useSavedJobs()
   const [recommended, setRecommended] = useState([])
+  const [interviewsList, setInterviewsList] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const interviews = applications.filter((a) => a.status === 'Interview').length
+  const activeInterviewsCount = applications.filter((a) => a.status === 'Interview').length
 
-  useEffect(() => {
-    let mounted = true
+  function loadOverviewData() {
     if (refreshUser) refreshUser()
 
-    api
-      .get('/jobs', { params: { limit: 2, sort: 'newest' } })
-      .then(({ data }) => {
-        if (mounted) setRecommended(data.jobs)
+    Promise.all([
+      api.get('/jobs', { params: { limit: 2, sort: 'newest' } }),
+      api.get('/interviews/mine').catch(() => ({ data: { interviews: [] } })),
+    ])
+      .then(([jobsRes, interviewsRes]) => {
+        setRecommended(jobsRes.data.jobs || [])
+        setInterviewsList(interviewsRes.data.interviews || [])
       })
       .catch(() => {
-        if (mounted) setRecommended([])
+        setRecommended([])
+        setInterviewsList([])
       })
       .finally(() => {
-        if (mounted) setLoading(false)
+        setLoading(false)
       })
+  }
 
-    return () => {
-      mounted = false
-    }
-  }, [refreshUser])
+  useEffect(() => {
+    loadOverviewData()
+  }, [])
+
+  const upcomingInterviews = interviewsList.filter(
+    (i) => i.status === 'scheduled' || i.status === 'slots_offered'
+  )
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="font-display text-2xl font-bold text-ink">Welcome back, {user?.name || 'Student'}</h2>
-        <p className="mt-1 text-sm text-ink-soft">Here's your career progress and AI-powered preparation tools.</p>
+        <h2 className="font-display text-2xl font-bold text-ink">
+          Welcome back, {user?.name || 'Student'}
+        </h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          Here's your career progress, scheduled interviews, and AI-powered preparation tools.
+        </p>
       </div>
 
       {/* Metric Counters */}
@@ -88,15 +103,51 @@ export default function Overview() {
         {[
           { label: 'Applications', value: applications.length },
           { label: 'Saved Jobs', value: savedIds.length },
-          { label: 'Interviews', value: interviews },
+          { label: 'Interviews', value: activeInterviewsCount },
           { label: 'Profile Views', value: user?.profileViews || 0 },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-ink/10 bg-white p-5 shadow-xs">
             <p className="font-display text-3xl font-bold text-ink">{s.value}</p>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-ink-soft">{s.label}</p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-ink-soft">
+              {s.label}
+            </p>
           </div>
         ))}
       </div>
+
+      {/* Upcoming Scheduled Interviews Agenda */}
+      {upcomingInterviews.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+              <h3 className="font-display text-lg font-bold text-ink flex items-center gap-2">
+                <Calendar size={18} className="text-signal-dark" /> Upcoming Scheduled Interviews
+              </h3>
+            </div>
+            <Link
+              to="/student/dashboard/applications"
+              className="text-xs font-semibold text-signal-dark hover:underline flex items-center gap-1"
+            >
+              <span>View all applications</span>
+              <ArrowRight size={12} />
+            </Link>
+          </div>
+
+          <div className="space-y-3">
+            {upcomingInterviews.map((item) => (
+              <InterviewScheduleCard
+                key={item._id}
+                interview={item}
+                onUpdated={() => {
+                  loadOverviewData()
+                  if (refreshApplications) refreshApplications()
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* AI Career Tools Quick Access Hub */}
       <div className="rounded-2xl border border-signal/30 bg-gradient-to-r from-signal/15 via-white to-paper p-6 shadow-xs">
@@ -107,7 +158,9 @@ export default function Overview() {
             </div>
             <div>
               <h3 className="font-display text-base font-bold text-ink">AI Career Tools Hub</h3>
-              <p className="text-xs text-ink-soft">Accelerate your job search with intelligent Gemini career tools.</p>
+              <p className="text-xs text-ink-soft">
+                Accelerate your job search with intelligent Gemini career tools.
+              </p>
             </div>
           </div>
 
@@ -148,7 +201,10 @@ export default function Overview() {
 
                 <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-signal-dark group-hover:underline">
                   <span>Launch Tool</span>
-                  <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                  <ArrowRight
+                    size={12}
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
                 </div>
               </Link>
             )
@@ -160,7 +216,10 @@ export default function Overview() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-lg font-bold text-ink">Recommended for You</h3>
-          <Link to="/jobs" className="text-xs font-semibold text-signal-dark hover:underline flex items-center gap-1">
+          <Link
+            to="/jobs"
+            className="text-xs font-semibold text-signal-dark hover:underline flex items-center gap-1"
+          >
             <span>Explore all jobs</span>
             <ArrowRight size={12} />
           </Link>
@@ -168,9 +227,13 @@ export default function Overview() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {loading ? (
-            <div className="rounded-xl border border-ink/10 bg-white p-8 text-center text-sm text-ink-soft">Loading recommendations…</div>
+            <div className="rounded-xl border border-ink/10 bg-white p-8 text-center text-sm text-ink-soft">
+              Loading recommendations…
+            </div>
           ) : recommended.length === 0 ? (
-            <div className="col-span-full rounded-xl border border-dashed border-ink/20 py-12 text-center text-sm text-ink-soft">No recommendations available right now.</div>
+            <div className="col-span-full rounded-xl border border-dashed border-ink/20 py-12 text-center text-sm text-ink-soft">
+              No recommendations available right now.
+            </div>
           ) : (
             recommended.map((job) => <JobCard key={job._id || job.id} job={job} />)
           )}

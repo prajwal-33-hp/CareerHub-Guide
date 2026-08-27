@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
+import { Calendar, Video, ArrowRight, Clock } from 'lucide-react'
+import InterviewScheduleCard from '../../components/interview/InterviewScheduleCard.jsx'
 import api from '../../services/api.js'
 
 const funnelStages = [
@@ -21,31 +23,33 @@ const statusStyles = {
 export default function Overview() {
   const [jobs, setJobs] = useState([])
   const [applications, setApplications] = useState([])
+  const [interviews, setInterviews] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let mounted = true
+  function loadRecruiterData() {
     setLoading(true)
-
-    Promise.all([api.get('/jobs/mine'), api.get('/applications/recruiter')])
-      .then(([jobsResponse, appsResponse]) => {
-        if (!mounted) return
-        setJobs(jobsResponse.data.jobs)
-        setApplications(appsResponse.data.applications)
+    Promise.all([
+      api.get('/jobs/mine'),
+      api.get('/applications/recruiter'),
+      api.get('/interviews/mine').catch(() => ({ data: { interviews: [] } })),
+    ])
+      .then(([jobsResponse, appsResponse, interviewsRes]) => {
+        setJobs(jobsResponse.data.jobs || [])
+        setApplications(appsResponse.data.applications || [])
+        setInterviews(interviewsRes.data.interviews || [])
       })
       .catch(() => {
-        if (mounted) {
-          setJobs([])
-          setApplications([])
-        }
+        setJobs([])
+        setApplications([])
+        setInterviews([])
       })
       .finally(() => {
-        if (mounted) setLoading(false)
+        setLoading(false)
       })
+  }
 
-    return () => {
-      mounted = false
-    }
+  useEffect(() => {
+    loadRecruiterData()
   }, [])
 
   const pendingInterviews = useMemo(
@@ -102,8 +106,9 @@ export default function Overview() {
 
   const topJobs = useMemo(() => {
     const counts = applications.reduce((acc, app) => {
-      const jobId = app.job._id || app.job
-      acc[jobId] = acc[jobId] || { title: app.job.title, count: 0, id: jobId }
+      const jobId = app.job?._id || app.job
+      if (!jobId) return acc
+      acc[jobId] = acc[jobId] || { title: app.job?.title || 'Job', count: 0, id: jobId }
       acc[jobId].count += 1
       return acc
     }, {})
@@ -111,12 +116,19 @@ export default function Overview() {
     return Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 3)
   }, [applications])
 
-  return (
-    <div>
-      <h2 className="font-display text-xl font-bold text-ink">Dashboard Overview</h2>
-      <p className="mt-1 text-sm text-ink-soft">A snapshot of your hiring activity.</p>
+  const upcomingScheduled = useMemo(
+    () => interviews.filter((i) => i.status === 'scheduled' || i.status === 'slots_offered'),
+    [interviews]
+  )
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="font-display text-xl font-bold text-ink">Dashboard Overview</h2>
+        <p className="mt-1 text-sm text-ink-soft">A snapshot of your hiring activity and interview schedule.</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {stats.map((s) => (
           <div key={s.label} className="rounded-lg border border-ink/10 bg-white p-4">
             <p className="font-display text-2xl font-bold text-ink">{loading ? '—' : s.value}</p>
@@ -125,7 +137,39 @@ export default function Overview() {
         ))}
       </div>
 
-      <div className="mt-8 rounded-lg border border-ink/10 bg-white p-5">
+      {/* Upcoming Candidate Interviews Agenda */}
+      {upcomingScheduled.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+              <h3 className="font-display text-lg font-bold text-ink flex items-center gap-2">
+                <Calendar size={18} className="text-signal-dark" /> Upcoming Candidate Interviews
+              </h3>
+            </div>
+            <Link
+              to="/recruiter/dashboard/applicants"
+              className="text-xs font-semibold text-signal-dark hover:underline flex items-center gap-1"
+            >
+              <span>View all applicants</span>
+              <ArrowRight size={12} />
+            </Link>
+          </div>
+
+          <div className="space-y-3">
+            {upcomingScheduled.map((item) => (
+              <InterviewScheduleCard
+                key={item._id}
+                interview={item}
+                onUpdated={loadRecruiterData}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Applicant Funnel */}
+      <div className="rounded-lg border border-ink/10 bg-white p-5">
         <h3 className="font-display font-semibold text-ink">Applicant funnel</h3>
         <div className="mt-4 space-y-2">
           {funnelData.map((row) => (
@@ -140,7 +184,7 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="rounded-lg border border-ink/10 bg-white p-5">
           <div className="flex items-center justify-between">
             <div>
@@ -188,8 +232,8 @@ export default function Overview() {
               applications.slice(0, 3).map((app) => (
                 <Link key={app._id} to={`/recruiter/dashboard/applicants/${app._id}`} className="grid gap-3 rounded-lg border border-ink/10 p-4 transition hover:border-signal/40 sm:grid-cols-[1fr_auto]">
                   <div>
-                    <p className="text-sm font-semibold text-ink">{app.applicant.name}</p>
-                    <p className="text-xs text-ink-soft">Applied for {app.job.title}</p>
+                    <p className="text-sm font-semibold text-ink">{app.applicant?.name || 'Applicant'}</p>
+                    <p className="text-xs text-ink-soft">Applied for {app.job?.title || 'Job'}</p>
                     <p className="text-xs text-ink-soft">{new Date(app.createdAt).toLocaleDateString()}</p>
                   </div>
                   <span className={`badge ${statusStyles[app.status]}`}>{app.status}</span>
@@ -200,7 +244,7 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="mt-8 rounded-lg border border-ink/10 bg-white p-5">
+      <div className="rounded-lg border border-ink/10 bg-white p-5">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-display font-semibold text-ink">Top jobs by applicants</h3>
