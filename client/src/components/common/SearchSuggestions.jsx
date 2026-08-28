@@ -14,9 +14,11 @@ export default function SearchSuggestions({ value, onChange, onSelect, placehold
     api.get('/jobs', { params: { limit: 50, sort: 'newest' } })
       .then(({ data }) => {
         if (!mounted) return
-        const titles = data.jobs.map((job) => job.title)
-        const skills = data.jobs.flatMap((job) => job.skills || [])
-        setPool([...new Set([...titles, ...skills])])
+        const jobsList = data?.jobs || []
+        const titles = jobsList.map((job) => job.title).filter(Boolean)
+        const skills = jobsList.flatMap((job) => job.skills || []).filter(Boolean)
+        const companies = jobsList.map((job) => job.company?.name).filter(Boolean)
+        setPool([...new Set([...titles, ...skills, ...companies])])
       })
       .catch(() => {
         if (mounted) setPool([])

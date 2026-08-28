@@ -4,27 +4,112 @@ const slugify = require('../utils/slugify')
 const Job = require('../models/Job')
 const Company = require('../models/Company')
 
+function escapeRegex(text) {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
+}
+
 // @route   GET /api/jobs
 // @access  Public
-// Supports the filters the frontend's Jobs.jsx already sends: keyword, location,
-// jobType (comma-separated), workMode (comma-separated), skills (comma-separated),
+// Supports: keyword, search, q, location, jobType, workMode, skills, skill, company,
 // plus pagination (page, limit) and sort (newest | salary).
 const getJobs = asyncHandler(async (req, res) => {
-  const { keyword, location, jobType, workMode, skills, company, page = 1, limit = 10, sort = 'newest' } = req.query
+  const {
+    keyword,
+    search,
+    q,
+    location,
+    jobType,
+    type,
+    workMode,
+    skills,
+    skill,
+    company,
+    page = 1,
+    limit = 10,
+    sort = 'newest',
+  } = req.query
+
+  const searchTerm = (keyword || search || q || '').trim()
+  const locTerm = (location || '').trim()
+  const skillParam = skills || skill
+  const typeParam = jobType || type
 
   const query = { status: 'approved' }
 
-  if (keyword) {
-    query.$or = [
-      { title: { $regex: keyword, $options: 'i' } },
-      { skills: { $regex: keyword, $options: 'i' } },
-    ]
+  if (searchTerm) {
+    const escapedTerm = escapeRegex(searchTerm)
+    const termRegex = new RegExp(escapedTerm, 'i')
+
+    // Find any company matching the search term
+    const matchedCompanies = await Company.find({
+      name: { $regex: escapedTerm, $options: 'i' },
+    }).select('_id')
+    const companyIds = matchedCompanies.map((c) => c._id)
+
+    // Handle common spelling variations (e.g., developer vs devoloper)
+    const variants = [escapedTerm]
+    if (/developer/i.test(searchTerm)) {
+      variants.push(escapeRegex(searchTerm.replace(/developer/gi, 'devoloper')))
+    } else if (/devoloper/i.test(searchTerm)) {
+      variants.push(escapeRegex(searchTerm.replace(/devoloper/gi, 'developer')))
+    }
+
+    const orConditions = []
+    variants.forEach((v) => {
+      const rx = new RegExp(v, 'i')
+      orConditions.push(
+        { title: rx },
+        { description: rx },
+        { skills: rx },
+        { location: rx },
+        { jobType: rx },
+        { workMode: rx }
+      )
+    })
+
+    if (companyIds.length > 0) {
+      orConditions.push({ company: { $in: companyIds } })
+    }
+
+    query.$or = orConditions
   }
-  if (location) query.location = { $regex: location, $options: 'i' }
-  if (jobType) query.jobType = { $in: jobType.split(',') }
-  if (workMode) query.workMode = { $in: workMode.split(',') }
-  if (skills) query.skills = { $in: skills.split(',') }
-  if (company) query.company = company
+
+  if (locTerm) {
+    query.location = { $regex: escapeRegex(locTerm), $options: 'i' }
+  }
+
+  if (typeParam) {
+    const types = typeParam.split(',').map((t) => t.trim()).filter(Boolean)
+    if (types.length > 0) {
+      query.jobType = {
+        $in: types.map((t) => new RegExp(`^${escapeRegex(t)}$`, 'i')),
+      }
+    }
+  }
+
+  if (workMode) {
+    const modes = workMode.split(',').map((m) => m.trim()).filter(Boolean)
+    if (modes.length > 0) {
+      query.workMode = {
+        $in: modes.map((m) => new RegExp(`^${escapeRegex(m)}$`, 'i')),
+      }
+    }
+  }
+
+  if (skillParam) {
+    const skillList = skillParam.split(',').map((s) => s.trim()).filter(Boolean)
+    if (skillList.length > 0) {
+      query.skills = {
+        $in: skillList.map((s) => new RegExp(escapeRegex(s), 'i')),
+      }
+    }
+  }
+
+  if (company) {
+    if (mongoose.Types.ObjectId.isValid(company)) {
+      query.company = company
+    }
+  }
 
   const sortMap = { newest: '-createdAt', salary: '-salary' }
   const sortBy = sortMap[sort] || '-createdAt'
