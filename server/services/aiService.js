@@ -582,9 +582,12 @@ You are a Senior Technical Lead evaluating a candidate mock interview answer for
 Question: "${question}"
 Candidate Answer: "${answer}"
 
-Evaluate constructively. Format strictly as valid JSON:
+Evaluate constructively. Provide an overall score strictly on a scale of 1 to 10 (where 10 is outstanding/perfect, 7-8 is solid/hirable, 5-6 is basic, and 1-4 is poor/incomplete).
+DO NOT use a 100-point scale. The score must be an integer between 1 and 10.
+
+Format strictly as valid JSON:
 {
-  "score": number,
+  "score": 8,
   "feedbackSummary": "string",
   "strengths": ["string"],
   "improvements": ["string"],
@@ -596,7 +599,16 @@ Evaluate constructively. Format strictly as valid JSON:
   try {
     const text = await generateContentWithFallback(prompt)
     const json = parseJsonFromResponse(text)
-    if (json.score !== undefined) return json
+    if (json && json.score !== undefined) {
+      let numScore = Number(json.score)
+      if (numScore > 10) {
+        numScore = Math.min(10, Math.max(1, Math.round(numScore / 10)))
+      } else {
+        numScore = Math.min(10, Math.max(1, Math.round(numScore)))
+      }
+      json.score = numScore
+      return json
+    }
   } catch (err) {
     console.error('Evaluate Answer error:', err.message)
   }

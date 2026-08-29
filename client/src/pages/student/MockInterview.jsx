@@ -330,6 +330,15 @@ export default function MockInterview() {
       })
 
       const evalData = data.evaluation
+      if (evalData && evalData.score !== undefined) {
+        let numScore = Number(evalData.score)
+        if (numScore > 10) {
+          numScore = Math.min(10, Math.max(1, Math.round(numScore / 10)))
+        } else {
+          numScore = Math.min(10, Math.max(1, Math.round(numScore)))
+        }
+        evalData.score = numScore
+      }
       setCurrentEvaluation(evalData)
 
       setHistory((prev) => [
