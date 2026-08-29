@@ -22,7 +22,10 @@ const googleAuth = asyncHandler(async (req, res) => {
       // keep fallback
     }
   }
-  const clientUrl = detectedClient || process.env.CLIENT_URL || 'http://localhost:5174'
+  const clientUrl =
+    detectedClient ||
+    process.env.CLIENT_URL ||
+    'https://careerhub-guide-2.onrender.com'
 
   try {
     const authUrl = getGoogleAuthUrl(role, clientUrl)
@@ -43,7 +46,10 @@ const googleCallback = asyncHandler(async (req, res) => {
 
   // Verify CSRF state first to recover target client URL if present
   const stateData = verifySignedState(state)
-  const clientUrl = stateData?.clientUrl || process.env.CLIENT_URL || 'http://localhost:5174'
+  const clientUrl =
+    stateData?.clientUrl ||
+    process.env.CLIENT_URL ||
+    'https://careerhub-guide-2.onrender.com'
 
   // User cancelled or Google reported an error
   if (error) {

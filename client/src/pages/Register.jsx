@@ -35,7 +35,8 @@ export default function Register() {
 
   function handleGoogleSignUp() {
     const baseUrl = import.meta.env.VITE_API_URL || 'https://careerhub-guide.onrender.com/api'
-    window.location.href = `${baseUrl}/auth/google?role=${encodeURIComponent(selectedRole || 'student')}`
+    const clientUrl = encodeURIComponent(window.location.origin)
+    window.location.href = `${baseUrl}/auth/google?role=${encodeURIComponent(selectedRole || 'student')}&clientUrl=${clientUrl}`
   }
 
   // Dynamic Password Strength Calculator

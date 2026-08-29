@@ -68,6 +68,16 @@ export default function AppRoutes() {
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes>
+        {/* Dedicated Full-Screen Live Video Interview Studio (no outer navbar/footer layout) */}
+        <Route
+          path="/interview/:roomId"
+          element={
+            <ProtectedRoute>
+              <VideoInterviewRoom />
+            </ProtectedRoute>
+          }
+        />
+
         <Route element={<MainLayout />}>
           {/* Public */}
           <Route path="/" element={<Home />} />
@@ -137,16 +147,6 @@ export default function AppRoutes() {
           <Route path="/404" element={<NotFound />} />
           <Route path="*" element={<NotFound />} />
         </Route>
-
-        {/* Dedicated Full-Screen Live Video Interview Studio */}
-        <Route
-          path="/interview/:roomId"
-          element={
-            <ProtectedRoute>
-              <VideoInterviewRoom />
-            </ProtectedRoute>
-          }
-        />
       </Routes>
     </Suspense>
   )

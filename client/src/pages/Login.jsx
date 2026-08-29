@@ -43,7 +43,8 @@ export default function Login() {
 
   function handleGoogleLogin() {
     const baseUrl = import.meta.env.VITE_API_URL || 'https://careerhub-guide.onrender.com/api'
-    window.location.href = `${baseUrl}/auth/google?role=${encodeURIComponent(selectedRole || 'student')}`
+    const clientUrl = encodeURIComponent(window.location.origin)
+    window.location.href = `${baseUrl}/auth/google?role=${encodeURIComponent(selectedRole || 'student')}&clientUrl=${clientUrl}`
   }
 
   // Forgot Password Modal State

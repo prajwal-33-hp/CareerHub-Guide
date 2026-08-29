@@ -14,7 +14,10 @@ function createSignedState(role = 'student', clientUrl = null) {
 
   const statePayload = {
     role: safeRole,
-    clientUrl: clientUrl || process.env.CLIENT_URL || 'http://localhost:5174',
+    clientUrl:
+      clientUrl ||
+      process.env.CLIENT_URL ||
+      'https://careerhub-guide-2.onrender.com',
     nonce: crypto.randomBytes(16).toString('hex'),
     iat: Date.now(),
   }
