@@ -1,57 +1,65 @@
 const nodemailer = require('nodemailer')
 
-let cachedTransporter = null
+let brevoTransporter = null
+let gmailTransporter = null
+let etherealTransporter = null
 
-// Creates and caches a Nodemailer transporter instance
-async function getTransporter() {
-  if (cachedTransporter) {
-    return cachedTransporter
+// Initializes high-speed Brevo (Sendinblue) Transporter
+function getBrevoTransporter() {
+  if (brevoTransporter) return brevoTransporter
+
+  const brevoUser = (process.env.BREVO_SMTP_USER || (process.env.SMTP_HOST?.includes('brevo') ? process.env.SMTP_USER : null))?.trim()
+  const brevoKey = (process.env.BREVO_SMTP_KEY || (process.env.SMTP_HOST?.includes('brevo') ? process.env.SMTP_PASS : null))?.replace(/\s+/g, '')
+
+  if (brevoUser && brevoKey) {
+    brevoTransporter = nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
+      auth: {
+        user: brevoUser,
+        pass: brevoKey,
+      },
+    })
+    console.log(`[EmailService] Primary Brevo high-speed relay active (${brevoUser})`)
   }
+  return brevoTransporter
+}
 
-  // 1. If real SMTP credentials are provided in environment variables
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-    const isGmail =
-      process.env.SMTP_SERVICE?.toLowerCase() === 'gmail' ||
-      process.env.SMTP_HOST?.includes('gmail') ||
-      process.env.SMTP_USER?.includes('@gmail.com')
+// Initializes Gmail SMTP Transporter with persistent socket pooling
+function getGmailTransporter() {
+  if (gmailTransporter) return gmailTransporter
 
-    const cleanUser = process.env.SMTP_USER.trim()
-    const cleanPass = process.env.SMTP_PASS.replace(/\s+/g, '')
+  const gmailUser = (process.env.GMAIL_USER || (!process.env.SMTP_HOST?.includes('brevo') ? process.env.SMTP_USER : null))?.trim()
+  const gmailPass = (process.env.GMAIL_APP_PASS || (!process.env.SMTP_HOST?.includes('brevo') ? process.env.SMTP_PASS : null))?.replace(/\s+/g, '')
 
-    const transportOptions = isGmail
-      ? {
-          host: 'smtp.gmail.com',
-          port: 465,
-          secure: true,
-          pool: true,
-          maxConnections: 5,
-          maxMessages: 100,
-          auth: {
-            user: cleanUser,
-            pass: cleanPass, // 16-character Google App Password
-          },
-        }
-      : {
-          host: process.env.SMTP_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.SMTP_PORT || '587', 10),
-          secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
-          pool: true,
-          auth: {
-            user: cleanUser,
-            pass: cleanPass,
-          },
-        }
-
-    cachedTransporter = nodemailer.createTransport(transportOptions)
-    console.log(`[EmailService] Configured real SMTP delivery via ${cleanUser}`)
-    return cachedTransporter
+  if (gmailUser && gmailPass) {
+    gmailTransporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
+      auth: {
+        user: gmailUser,
+        pass: gmailPass,
+      },
+    })
+    console.log(`[EmailService] Secondary Gmail SMTP relay active (${gmailUser})`)
   }
+  return gmailTransporter
+}
 
-  // 2. If no SMTP credentials provided, create an auto-generated Ethereal test account
-  // This allows seeing real formatted emails in development via a live web preview link.
+// Initializes Ethereal dev fallback
+async function getEtherealTransporter() {
+  if (etherealTransporter) return etherealTransporter
   try {
     const testAccount = await nodemailer.createTestAccount()
-    cachedTransporter = nodemailer.createTransport({
+    etherealTransporter = nodemailer.createTransport({
       host: 'smtp.ethereal.email',
       port: 587,
       secure: false,
@@ -60,11 +68,9 @@ async function getTransporter() {
         pass: testAccount.pass,
       },
     })
-    console.log('[EmailService] Using Ethereal test email transport for local testing.')
-    return cachedTransporter
+    console.log('[EmailService] Dev Ethereal transport initialized.')
+    return etherealTransporter
   } catch (err) {
-    console.warn('[EmailService] Could not initialize Ethereal transport:', err.message)
-    // Fallback pseudo transporter
     return {
       sendMail: async (opts) => {
         console.log(`[EmailService Mock] To: ${opts.to} | Subject: ${opts.subject}`)
@@ -74,39 +80,62 @@ async function getTransporter() {
   }
 }
 
-// Utility to dispatch email
+// Utility to dispatch email with automatic failover (Brevo -> Gmail -> Ethereal)
 async function sendEmail({ to, subject, html, text }) {
-  try {
-    const transporter = await getTransporter()
-    const fromAddress =
-      process.env.EMAIL_FROM ||
-      `"CareerHub Verifications" <${process.env.SMTP_USER || 'no-reply@careerhub.com'}>`
+  const fromAddress =
+    process.env.EMAIL_FROM ||
+    `"CareerHub Verifications" <${process.env.BREVO_SMTP_USER || process.env.GMAIL_USER || process.env.SMTP_USER || 'no-reply@careerhub.com'}>`
 
-    const info = await transporter.sendMail({
-      from: fromAddress,
-      to,
-      subject,
-      text: text || html.replace(/<[^>]*>?/gm, ''),
-      html,
-      priority: 'high',
-      headers: {
-        'X-Priority': '1 (Highest)',
-        'X-MSMail-Priority': 'High',
-        Importance: 'High',
-      },
-    })
+  const mailOptions = {
+    from: fromAddress,
+    to,
+    subject,
+    text: text || html.replace(/<[^>]*>?/gm, ''),
+    html,
+    priority: 'high',
+    headers: {
+      'X-Priority': '1 (Highest)',
+      'X-MSMail-Priority': 'High',
+      Importance: 'High',
+    },
+  }
 
-    console.log(`[EmailService] Email sent successfully to ${to} (MessageID: ${info.messageId})`)
-
-    // If Ethereal test transport was used, print the live URL preview
-    const previewUrl = nodemailer.getTestMessageUrl(info)
-    if (previewUrl) {
-      console.log(`[EmailService] 🔗 View delivered test email in browser: ${previewUrl}`)
+  // 1. Attempt Primary: Brevo (Ultra-fast instant sub-second delivery)
+  const brevo = getBrevoTransporter()
+  if (brevo) {
+    try {
+      const info = await brevo.sendMail(mailOptions)
+      console.log(`[EmailService] ⚡ Instant email delivered via Brevo to ${to} (MessageID: ${info.messageId})`)
+      return { success: true, messageId: info.messageId, provider: 'brevo' }
+    } catch (err) {
+      console.warn(`[EmailService] Brevo delivery failed (${err.message}). Attempting Gmail fallback...`)
     }
+  }
 
-    return { success: true, messageId: info.messageId, previewUrl }
+  // 2. Attempt Fallback: Gmail SMTP App Password
+  const gmail = getGmailTransporter()
+  if (gmail) {
+    try {
+      const info = await gmail.sendMail(mailOptions)
+      console.log(`[EmailService] Email delivered via Gmail SMTP to ${to} (MessageID: ${info.messageId})`)
+      return { success: true, messageId: info.messageId, provider: 'gmail' }
+    } catch (err) {
+      console.warn(`[EmailService] Gmail delivery failed (${err.message}). Attempting dev transport...`)
+    }
+  }
+
+  // 3. Dev Fallback: Ethereal test inbox
+  try {
+    const ethereal = await getEtherealTransporter()
+    const info = await ethereal.sendMail(mailOptions)
+    const previewUrl = nodemailer.getTestMessageUrl(info)
+    console.log(`[EmailService] Email delivered via Ethereal test transport to ${to}`)
+    if (previewUrl) {
+      console.log(`[EmailService] 🔗 Live test email preview: ${previewUrl}`)
+    }
+    return { success: true, messageId: info.messageId, previewUrl, provider: 'ethereal' }
   } catch (err) {
-    console.error(`[EmailService] Error sending email to ${to}:`, err.message)
+    console.error(`[EmailService] All email transports failed for ${to}:`, err.message)
     return { success: false, error: err.message }
   }
 }
