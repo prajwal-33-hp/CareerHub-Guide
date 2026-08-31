@@ -280,7 +280,10 @@ export default function Register() {
       <div className="mt-6 grid grid-cols-3 gap-1.5 rounded-2xl border border-ink/10 bg-paper/60 p-1.5 shadow-2xs">
         <button
           type="button"
-          onClick={() => setAccountIntent('student')}
+          onClick={() => {
+            setAccountIntent('student')
+            setOtpSent(false)
+          }}
           className={`flex flex-col sm:flex-row items-center justify-center gap-1 rounded-xl py-2 px-1 text-[11px] sm:text-xs font-bold transition ${
             accountIntent === 'student'
               ? 'bg-white text-ink shadow-xs border border-ink/10'
@@ -291,7 +294,10 @@ export default function Register() {
         </button>
         <button
           type="button"
-          onClick={() => setAccountIntent('recruiter')}
+          onClick={() => {
+            setAccountIntent('recruiter')
+            setOtpSent(false)
+          }}
           className={`flex flex-col sm:flex-row items-center justify-center gap-1 rounded-xl py-2 px-1 text-[11px] sm:text-xs font-bold transition ${
             accountIntent === 'recruiter'
               ? 'bg-white text-ink shadow-xs border border-signal/40'
@@ -302,7 +308,10 @@ export default function Register() {
         </button>
         <button
           type="button"
-          onClick={() => setAccountIntent('admin')}
+          onClick={() => {
+            setAccountIntent('admin')
+            setOtpSent(false)
+          }}
           className={`flex flex-col sm:flex-row items-center justify-center gap-1 rounded-xl py-2 px-1 text-[11px] sm:text-xs font-bold transition ${
             accountIntent === 'admin'
               ? 'bg-white text-ink shadow-xs border border-signal text-signal-dark'
@@ -312,6 +321,33 @@ export default function Register() {
           <ShieldCheck size={15} /> {adminStatus.hasAdmin ? 'Admin (Locked)' : 'Master Admin'}
         </button>
       </div>
+
+      {/* 2-Step Real Email Verification Progress Header */}
+      {accountIntent !== 'admin' && (
+        <div className="mt-4 flex items-center justify-between rounded-xl bg-paper/80 p-2.5 border border-ink/10 text-xs shadow-2xs">
+          <div className={`flex items-center gap-1.5 font-bold ${!otpSent ? 'text-signal-dark' : 'text-emerald-600'}`}>
+            <span
+              className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-mono ${
+                !otpSent ? 'bg-signal text-ink' : 'bg-emerald-100 text-emerald-700'
+              }`}
+            >
+              {!otpSent ? '1' : '✓'}
+            </span>
+            <span>1. Account Details</span>
+          </div>
+          <div className="h-0.5 flex-1 bg-ink/10 mx-2.5" />
+          <div className={`flex items-center gap-1.5 font-bold ${otpSent ? 'text-signal-dark' : 'text-ink-soft'}`}>
+            <span
+              className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-mono ${
+                otpSent ? 'bg-signal text-ink' : 'bg-ink/10 text-ink-soft'
+              }`}
+            >
+              2
+            </span>
+            <span>2. Email OTP Code</span>
+          </div>
+        </div>
+      )}
 
       {/* Admin Claim Notice */}
       {accountIntent === 'admin' && adminStatus.hasAdmin && (
