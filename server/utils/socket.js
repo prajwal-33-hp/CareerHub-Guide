@@ -246,9 +246,6 @@ function emitNotification(userId, notification) {
 function emitMessage(recipientId, message) {
   if (!io) return
   io.to(`user_${String(recipientId)}`).emit('new_message', message)
-  if (message.conversation) {
-    io.to(`conv_${String(message.conversation)}`).emit('conversation_message', message)
-  }
 }
 
 function emitApplicationStatus(applicantId, application) {

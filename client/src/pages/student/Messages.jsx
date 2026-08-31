@@ -178,14 +178,12 @@ export default function StudentMessages() {
     }
 
     socket.on('new_message', handleNewMessage)
-    socket.on('conversation_message', handleNewMessage)
     socket.on('user_typing', handleTyping)
     socket.on('user_stop_typing', handleStopTyping)
     socket.on('messages_read', handleMessagesRead)
 
     return () => {
       socket.off('new_message', handleNewMessage)
-      socket.off('conversation_message', handleNewMessage)
       socket.off('user_typing', handleTyping)
       socket.off('user_stop_typing', handleStopTyping)
       socket.off('messages_read', handleMessagesRead)
@@ -234,7 +232,10 @@ export default function StudentMessages() {
       })
 
       if (data.message) {
-        setMessages((prev) => [...prev, data.message])
+        setMessages((prev) => {
+          if (prev.some((m) => String(m._id) === String(data.message._id))) return prev
+          return [...prev, data.message]
+        })
         setConversations((prev) =>
           prev.map((c) =>
             c._id === activeConversation._id
@@ -527,7 +528,16 @@ export default function StudentMessages() {
                   </p>
                 </div>
               ) : (
-                messages.map((msg) => {
+                messages
+                  .filter(
+                    (msg, idx, arr) =>
+                      arr.findIndex(
+                        (m) =>
+                          String(m._id || `${m.createdAt}-${m.text}`) ===
+                          String(msg._id || `${msg.createdAt}-${msg.text}`)
+                      ) === idx
+                  )
+                  .map((msg) => {
                   const isMine = String(msg.sender?._id || msg.sender) === String(user?._id)
                   const time = new Date(msg.createdAt).toLocaleTimeString([], {
                     hour: '2-digit',
