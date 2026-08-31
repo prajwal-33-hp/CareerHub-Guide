@@ -141,10 +141,14 @@ async function validateRealEmail(email) {
   }
 
   // 2. Check for dummy / placeholder handles
-  if (DUMMY_LOCAL_PARTS.has(localPart.toLowerCase())) {
+  const isDummy =
+    DUMMY_LOCAL_PARTS.has(localPart.toLowerCase()) ||
+    /^(test|fake|dummy|temp|sample|example|asdf|qwerty|zxcv|user\d+|prajju123)/i.test(localPart)
+
+  if (isDummy) {
     return {
       valid: false,
-      error: `"${localPart}" appears to be a placeholder or test handle. Please use a real active email account.`,
+      error: `"${localPart}" appears to be a placeholder or test handle. Please use your genuine, active personal or work email address.`,
     }
   }
 
