@@ -301,12 +301,20 @@ export default function Login() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-xs text-ink-soft">
-        Don&apos;t have an account?{' '}
-        <Link to="/register" className="font-bold text-signal-dark hover:underline">
-          Sign up for free
-        </Link>
-      </p>
+      <div className="mt-6 pt-4 border-t border-ink/10 text-center space-y-2">
+        <p className="text-xs text-ink-soft">
+          Don&apos;t have an account?{' '}
+          <Link to="/register" className="font-bold text-signal-dark hover:underline">
+            Sign up as Candidate
+          </Link>
+        </p>
+        <p className="text-xs text-ink-soft">
+          Looking to hire talent & post jobs?{' '}
+          <Link to="/register?role=recruiter" className="font-bold text-signal-dark hover:underline">
+            Sign up as Recruiter / Employer →
+          </Link>
+        </p>
+      </div>
 
       {/* --- FORGOT PASSWORD RECOVERY MODAL --- */}
       <Modal

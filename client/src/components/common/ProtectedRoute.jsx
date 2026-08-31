@@ -15,8 +15,21 @@ export default function ProtectedRoute({ children, role }) {
     )
   }
 
-  if (!user) return <Navigate to="/login" replace />
-  if (role && user.role !== role) return <Navigate to="/" replace />
+  if (!user) {
+    if (role === 'recruiter') {
+      return <Navigate to="/register?role=recruiter" replace />
+    }
+    return <Navigate to="/login" replace />
+  }
+
+  if (role && user.role !== role) {
+    if (role === 'recruiter') {
+      // If user is candidate or unverified recruiter trying to access recruiter dashboard,
+      // redirect them directly to the onboarding / status wizard.
+      return <Navigate to="/recruiter/onboarding" replace />
+    }
+    return <Navigate to="/" replace />
+  }
 
   return children
 }

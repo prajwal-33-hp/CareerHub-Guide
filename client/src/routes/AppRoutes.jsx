@@ -99,6 +99,9 @@ export default function AppRoutes() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/recruiter/login" element={<Login />} />
+          <Route path="/recruiter/signup" element={<Register />} />
+          <Route path="/recruiter/register" element={<Register />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/recruiter/onboarding" element={<RecruiterOnboarding />} />
           <Route path="/invite/accept" element={<AcceptInvite />} />
