@@ -23,7 +23,7 @@ export default function Hero() {
         aria-hidden="true"
       />
       <div className="relative mx-auto max-w-5xl px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
-        <span className="badge bg-signal/15 text-signal font-mono">Boarding now &middot; 2,400+ open roles</span>
+        <span className="badge bg-signal/15 text-signal font-mono">Live Platform &middot; Verified Company Openings</span>
         <h1 className="mt-5 font-display text-4xl font-800 tracking-tight text-white sm:text-5xl">
           Find Your Next Opportunity
         </h1>

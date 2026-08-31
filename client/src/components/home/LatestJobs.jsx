@@ -27,7 +27,7 @@ export default function LatestJobs({ type = 'Full Time', title, viewAllTo }) {
     }
   }, [type])
 
-  if (!loading && latestJobs.length === 0) {
+  if (!loading && jobs.length === 0) {
     return null
   }
 
@@ -46,7 +46,7 @@ export default function LatestJobs({ type = 'Full Time', title, viewAllTo }) {
             <div key={index} className="h-[220px] animate-pulse rounded-3xl bg-paper" />
           ))
         ) : (
-          latestJobs.map((job) => <JobCard key={job._id} job={job} />)
+          jobs.map((job) => <JobCard key={job._id} job={job} />)
         )}
       </div>
     </section>
