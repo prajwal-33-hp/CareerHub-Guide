@@ -309,12 +309,66 @@ const resetPassword = asyncHandler(async (req, res) => {
   })
 })
 
+// @route   PUT /api/auth/update-account
+// @access  Private
+const updateAccount = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error('User not found')
+  }
+
+  const { name, email, currentPassword, newPassword } = req.body
+
+  if (name && name.trim()) {
+    user.name = name.trim()
+  }
+
+  // If updating email
+  if (email && email.toLowerCase().trim() !== user.email) {
+    const existing = await User.findOne({ email: email.toLowerCase().trim() })
+    if (existing && String(existing._id) !== String(user._id)) {
+      res.status(400)
+      throw new Error('An account with this email address already exists.')
+    }
+    user.email = email.toLowerCase().trim()
+  }
+
+  // If updating password
+  if (newPassword) {
+    if (newPassword.length < 6) {
+      res.status(400)
+      throw new Error('New password must be at least 6 characters')
+    }
+
+    if (currentPassword) {
+      const isMatch = await user.comparePassword(currentPassword)
+      if (!isMatch) {
+        res.status(400)
+        throw new Error('Current password does not match.')
+      }
+    }
+    user.password = newPassword
+  }
+
+  await user.save()
+
+  const token = generateToken(user._id, user.role)
+  res.json({
+    success: true,
+    message: 'Account credentials updated successfully!',
+    token,
+    user: user.toSafeObject(),
+  })
+})
+
 module.exports = {
   register,
   login,
   getMe,
   forgotPassword,
   resetPassword,
+  updateAccount,
   googleAuth,
   googleCallback,
 }

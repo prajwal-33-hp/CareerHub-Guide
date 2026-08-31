@@ -5,6 +5,7 @@ const {
   getMe,
   forgotPassword,
   resetPassword,
+  updateAccount,
   googleAuth,
   googleCallback,
 } = require('../controllers/authController')
@@ -15,6 +16,7 @@ const router = express.Router()
 router.post('/register', register)
 router.post('/login', login)
 router.get('/me', protect, getMe)
+router.put('/update-account', protect, updateAccount)
 router.post('/forgot-password', forgotPassword)
 router.post('/reset-password', resetPassword)
 

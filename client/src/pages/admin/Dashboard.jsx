@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { LayoutDashboard, Users, Building2, Briefcase, Flag, ShieldCheck } from 'lucide-react'
+import { LayoutDashboard, Users, Building2, Briefcase, Flag, ShieldCheck, KeyRound } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/admin/dashboard/companies', label: 'Companies', icon: Building2 },
   { to: '/admin/dashboard/jobs', label: 'Jobs', icon: Briefcase },
   { to: '/admin/dashboard/reports', label: 'Reports', icon: Flag },
+  { to: '/admin/dashboard/settings', label: 'Admin Security & Email', icon: KeyRound },
 ]
 
 export default function AdminDashboard() {

@@ -53,6 +53,7 @@ const AdminUsers = lazy(() => import('../pages/admin/Users.jsx'))
 const AdminCompanies = lazy(() => import('../pages/admin/AdminCompanies.jsx'))
 const AdminJobs = lazy(() => import('../pages/admin/AdminJobs.jsx'))
 const AdminReports = lazy(() => import('../pages/admin/Reports.jsx'))
+const AdminSettings = lazy(() => import('../pages/admin/AdminSettings.jsx'))
 const RecruiterApplications = lazy(() => import('../pages/admin/RecruiterApplications.jsx'))
 
 const Articles = lazy(() => import('../pages/content/Articles.jsx'))
@@ -153,6 +154,7 @@ export default function AppRoutes() {
             <Route path="companies" element={<AdminCompanies />} />
             <Route path="jobs" element={<AdminJobs />} />
             <Route path="reports" element={<AdminReports />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
 
           <Route path="/404" element={<NotFound />} />
