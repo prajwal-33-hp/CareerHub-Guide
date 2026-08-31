@@ -23,7 +23,7 @@ const COMMON_TYPO_DOMAINS = {
   'iclod.com': 'icloud.com',
 }
 
-// Common placeholder / dummy local parts that do not represent genuine users
+// Common placeholder / dummy handles that do not represent real users
 const DUMMY_LOCAL_PARTS = new Set([
   'test',
   'testing',
@@ -41,7 +41,6 @@ const DUMMY_LOCAL_PARTS = new Set([
   'qwerty',
   'qwertyuiop',
   'zxcvbnm',
-  '123456',
   'nobody',
   'null',
   'undefined',
@@ -50,7 +49,7 @@ const DUMMY_LOCAL_PARTS = new Set([
   'example',
 ])
 
-// Comprehensive list of known disposable, temporary, and fake email providers
+// Comprehensive list of known disposable, temporary, and burner email providers
 const DISPOSABLE_DOMAINS = new Set([
   'mailinator.com',
   'tempmail.com',
@@ -108,32 +107,8 @@ const DISPOSABLE_DOMAINS = new Set([
   'trashmail.ws',
 ])
 
-// Trusted standard public email providers
-const TRUSTED_DOMAINS = new Set([
-  'gmail.com',
-  'googlemail.com',
-  'yahoo.com',
-  'yahoo.co.in',
-  'yahoo.co.uk',
-  'outlook.com',
-  'hotmail.com',
-  'live.com',
-  'msn.com',
-  'icloud.com',
-  'me.com',
-  'protonmail.com',
-  'proton.me',
-  'zoho.com',
-  'zoho.in',
-  'aol.com',
-  'gmx.com',
-  'mail.com',
-  'yandex.com',
-  'rediffmail.com',
-])
-
 /**
- * Validates whether an email is a genuine, deliverable address.
+ * Validates whether an email is a genuine, active, deliverable real-world email address.
  * @param {string} email
  * @returns {Promise<{ valid: boolean, error?: string, normalizedEmail: string, domain: string }>}
  */
@@ -144,7 +119,7 @@ async function validateRealEmail(email) {
 
   const normalized = email.toLowerCase().trim()
 
-  // Standard RFC 5322 regex validation
+  // 1. Standard RFC 5322 regex validation
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/
   if (!emailRegex.test(normalized)) {
     return { valid: false, error: 'Please provide a valid email address format.' }
@@ -165,10 +140,11 @@ async function validateRealEmail(email) {
     return { valid: false, error: 'Email username contains invalid punctuation.' }
   }
 
+  // 2. Check for dummy / placeholder handles
   if (DUMMY_LOCAL_PARTS.has(localPart.toLowerCase())) {
     return {
       valid: false,
-      error: `"${localPart}" appears to be a placeholder or test email prefix. Please use a real active email account.`,
+      error: `"${localPart}" appears to be a placeholder or test handle. Please use a real active email account.`,
     }
   }
 
@@ -176,7 +152,7 @@ async function validateRealEmail(email) {
     return { valid: false, error: 'Email domain is invalid.' }
   }
 
-  // 1. Check for common domain typos
+  // 3. Check for common domain typos with instant correction
   if (COMMON_TYPO_DOMAINS[domain]) {
     return {
       valid: false,
@@ -184,7 +160,7 @@ async function validateRealEmail(email) {
     }
   }
 
-  // 2. Check against disposable / fake domain blocklist
+  // 4. Check against disposable / temporary domain blocklist
   if (DISPOSABLE_DOMAINS.has(domain)) {
     return {
       valid: false,
@@ -192,7 +168,7 @@ async function validateRealEmail(email) {
     }
   }
 
-  // 3. Check for obvious dummy patterns
+  // 5. Check for dummy test top-level domains
   if (
     domain.endsWith('.invalid') ||
     domain.endsWith('.test') ||
@@ -203,53 +179,7 @@ async function validateRealEmail(email) {
     return { valid: false, error: 'Test and placeholder email domains do not exist in real life.' }
   }
 
-  // 4. Provider-specific strict validation rules for trusted mail hosts
-  if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    // Gmail usernames must be between 3 and 30 characters
-    if (localPart.length < 3 || localPart.length > 30) {
-      return {
-        valid: false,
-        error: 'Gmail addresses must be between 3 and 30 characters in length.',
-      }
-    }
-    // Only letters (a-z), numbers (0-9), and periods (.) allowed in Gmail usernames
-    if (!/^[a-z0-9.]+$/i.test(localPart)) {
-      return {
-        valid: false,
-        error: 'Gmail usernames can only contain letters, numbers, and periods.',
-      }
-    }
-    return { valid: true, normalizedEmail: normalized, domain }
-  }
-
-  if (domain === 'yahoo.com' || domain === 'yahoo.co.in' || domain === 'yahoo.co.uk') {
-    if (localPart.length < 3 || localPart.length > 32) {
-      return {
-        valid: false,
-        error: 'Yahoo email usernames must be between 3 and 32 characters in length.',
-      }
-    }
-    return { valid: true, normalizedEmail: normalized, domain }
-  }
-
-  if (domain === 'outlook.com' || domain === 'hotmail.com' || domain === 'live.com' || domain === 'msn.com') {
-    if (localPart.length < 3 || localPart.length > 30) {
-      return {
-        valid: false,
-        error: 'Microsoft email usernames must be between 3 and 30 characters in length.',
-      }
-    }
-    return { valid: true, normalizedEmail: normalized, domain }
-  }
-
-  if (TRUSTED_DOMAINS.has(domain)) {
-    if (localPart.length < 3) {
-      return { valid: false, error: 'This email username is too short to be a valid account.' }
-    }
-    return { valid: true, normalizedEmail: normalized, domain }
-  }
-
-  // 5. For custom/corporate domains, verify DNS MX (Mail Exchange) records exist
+  // 6. Live DNS MX (Mail Exchange) verification: verifies that the domain has active mail servers in real life
   try {
     const mxRecords = await Promise.race([
       dns.resolveMx(domain),
@@ -259,7 +189,7 @@ async function validateRealEmail(email) {
     if (!mxRecords || mxRecords.length === 0) {
       return {
         valid: false,
-        error: `The domain "${domain}" does not exist or has no active mail servers. Please enter a real email.`,
+        error: `The domain "${domain}" does not exist in real life or has no active mail servers. Please enter a real email.`,
       }
     }
   } catch (err) {
@@ -278,7 +208,6 @@ async function validateRealEmail(email) {
 module.exports = {
   validateRealEmail,
   DISPOSABLE_DOMAINS,
-  TRUSTED_DOMAINS,
   COMMON_TYPO_DOMAINS,
   DUMMY_LOCAL_PARTS,
 }
