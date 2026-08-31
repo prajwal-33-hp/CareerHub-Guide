@@ -172,7 +172,11 @@ export default function JobDetails() {
                   <Users size={15} /> View Applicants
                 </Link>
               </>
-            ) : isRecruiterOrAdmin ? null : applied ? (
+            ) : isRecruiterOrAdmin ? (
+              <span className="badge bg-paper text-ink-soft text-xs px-3 py-1.5">
+                Recruiter View Only
+              </span>
+            ) : applied ? (
               <span className="btn-secondary cursor-default !border-success/30 !text-success">
                 <CheckCircle2 size={16} /> Applied
               </span>
@@ -195,7 +199,7 @@ export default function JobDetails() {
               </button>
             )}
 
-            {!isOwnerRecruiter && recruiterUserId && (
+            {!isRecruiterOrAdmin && recruiterUserId && String(recruiterUserId) !== String(user?._id) && (
               <Link
                 to={`/student/dashboard/messages?user=${recruiterUserId}&job=${job._id}`}
                 className="btn-secondary flex items-center gap-1.5 text-xs text-ink font-semibold hover:border-signal"

@@ -180,6 +180,11 @@ const sendMessage = asyncHandler(async (req, res) => {
     throw new Error('Message text cannot be empty')
   }
 
+  if (recipientId && String(recipientId) === String(currentUserId)) {
+    res.status(400)
+    throw new Error('You cannot send a message to yourself')
+  }
+
   let conversation
 
   if (conversationId) {
@@ -207,6 +212,11 @@ const sendMessage = asyncHandler(async (req, res) => {
   const targetRecipientId = conversation.participants.find(
     (p) => String(p) !== String(currentUserId)
   )
+
+  if (!targetRecipientId) {
+    res.status(400)
+    throw new Error('You cannot send a message to yourself')
+  }
 
   const message = await Message.create({
     conversation: conversation._id,
