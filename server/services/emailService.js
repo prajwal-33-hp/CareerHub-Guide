@@ -20,16 +20,22 @@ async function getTransporter() {
 
     const transportOptions = isGmail
       ? {
-          service: 'gmail',
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true,
+          pool: true,
+          maxConnections: 5,
+          maxMessages: 100,
           auth: {
             user: cleanUser,
-            pass: cleanPass, // 16-character Google App Password (stripped of spaces)
+            pass: cleanPass, // 16-character Google App Password
           },
         }
       : {
           host: process.env.SMTP_HOST || 'smtp.gmail.com',
           port: parseInt(process.env.SMTP_PORT || '587', 10),
           secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
+          pool: true,
           auth: {
             user: cleanUser,
             pass: cleanPass,
@@ -82,6 +88,12 @@ async function sendEmail({ to, subject, html, text }) {
       subject,
       text: text || html.replace(/<[^>]*>?/gm, ''),
       html,
+      priority: 'high',
+      headers: {
+        'X-Priority': '1 (Highest)',
+        'X-MSMail-Priority': 'High',
+        Importance: 'High',
+      },
     })
 
     console.log(`[EmailService] Email sent successfully to ${to} (MessageID: ${info.messageId})`)

@@ -56,6 +56,16 @@ export default function Login() {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [forgotLoading, setForgotLoading] = useState(false)
   const [forgotError, setForgotError] = useState('')
+  const [resendTimer, setResendTimer] = useState(0)
+
+  // Countdown timer for Forgot Password OTP Resend
+  useEffect(() => {
+    let timer
+    if (resendTimer > 0) {
+      timer = setInterval(() => setResendTimer((t) => t - 1), 1000)
+    }
+    return () => clearInterval(timer)
+  }, [resendTimer])
 
   async function onSubmit(data) {
     const { email, password, role } = data
@@ -77,7 +87,7 @@ export default function Login() {
 
   // Step 1: Send Reset Request (Verifies Email in MongoDB)
   async function handleSendResetCode(e) {
-    e.preventDefault()
+    if (e) e.preventDefault()
     if (!forgotEmail.trim()) {
       setForgotError('Please enter your account email.')
       return
@@ -89,9 +99,26 @@ export default function Login() {
     try {
       await api.post('/auth/forgot-password', { email: forgotEmail.trim() })
       setForgotStep(2)
-      showToast('Verification code generated. Please set your new password.', 'info')
+      setResendTimer(30)
+      showToast(`Verification code sent to ${forgotEmail.trim()}!`, 'success')
     } catch (err) {
       setForgotError(err.message || 'No account found with this email.')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
+  // Resend OTP handler
+  async function handleResendCode() {
+    if (resendTimer > 0 || forgotLoading) return
+    setForgotError('')
+    setForgotLoading(true)
+    try {
+      await api.post('/auth/forgot-password', { email: forgotEmail.trim() })
+      setResendTimer(30)
+      showToast(`New verification code sent to ${forgotEmail.trim()}!`, 'success')
+    } catch (err) {
+      setForgotError(err.message || 'Failed to resend code.')
     } finally {
       setForgotLoading(false)
     }
@@ -378,9 +405,23 @@ export default function Login() {
             )}
 
             <div>
-              <label className="mb-1 block text-xs font-semibold text-ink">
-                6-Digit Verification Code
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-ink">
+                  6-Digit Verification Code
+                </label>
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={resendTimer > 0 || forgotLoading}
+                  className={`text-[11px] font-semibold transition ${
+                    resendTimer > 0
+                      ? 'text-ink-soft cursor-not-allowed'
+                      : 'text-signal-dark hover:underline'
+                  }`}
+                >
+                  {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}
+                </button>
+              </div>
               <input
                 type="text"
                 placeholder="123456"
