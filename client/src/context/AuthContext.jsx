@@ -49,6 +49,11 @@ export function AuthProvider({ children }) {
     setLoading(true)
     try {
       const { data } = await api.post('/auth/register', payload)
+      if (data.token && data.user) {
+        localStorage.setItem('ch_token', data.token)
+        localStorage.setItem('ch_user', JSON.stringify(data.user))
+        setUser(data.user)
+      }
       return data.user
     } finally {
       setLoading(false)

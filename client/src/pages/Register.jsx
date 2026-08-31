@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import {
   Eye,
@@ -10,17 +10,26 @@ import {
   Mail,
   Lock,
   UserPlus,
+  ShieldCheck,
+  ArrowRight,
+  GraduationCap,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 
 export default function Register() {
+  const [searchParams] = useSearchParams()
+  const initialRoleIntent = searchParams.get('role') === 'recruiter' || searchParams.get('intent') === 'recruiter' ? 'recruiter' : 'student'
+
+  const [accountIntent, setAccountIntent] = useState(initialRoleIntent)
+
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
-  } = useForm({ defaultValues: { role: 'student' } })
+  } = useForm({ defaultValues: { role: 'student', email: searchParams.get('email') || '' } })
 
   const { register: registerUser, loading } = useAuth()
   const { showToast } = useToast()
@@ -30,13 +39,19 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const selectedRole = watch('role')
   const passwordValue = watch('password') || ''
+
+  useEffect(() => {
+    if (searchParams.get('role') === 'recruiter' || searchParams.get('intent') === 'recruiter') {
+      setAccountIntent('recruiter')
+    }
+  }, [searchParams])
 
   function handleGoogleSignUp() {
     const baseUrl = import.meta.env.VITE_API_URL || 'https://careerhub-guide.onrender.com/api'
     const clientUrl = encodeURIComponent(window.location.origin)
-    window.location.href = `${baseUrl}/auth/google?role=${encodeURIComponent(selectedRole || 'student')}&clientUrl=${clientUrl}`
+    // Server enforces role: student on signup, and if recruiter intent, redirects to onboarding
+    window.location.href = `${baseUrl}/auth/google?intent=${encodeURIComponent(accountIntent)}&clientUrl=${clientUrl}`
   }
 
   // Dynamic Password Strength Calculator
@@ -65,10 +80,16 @@ export default function Register() {
         name: data.name,
         email: data.email,
         password: data.password,
-        role: data.role,
+        role: 'student', // Server enforces student baseline
       })
-      showToast('Account created successfully! Please log in.', 'success')
-      navigate('/login')
+
+      if (accountIntent === 'recruiter') {
+        showToast('Account created! Proceeding to Recruiter Verification Wizard.', 'success')
+        navigate('/recruiter/onboarding')
+      } else {
+        showToast('Welcome to CareerHub! Your account is ready.', 'success')
+        navigate('/student/dashboard')
+      }
     } catch (err) {
       setServerError(err.message || 'Something went wrong. Please try again.')
     }
@@ -87,28 +108,54 @@ export default function Register() {
         </div>
         <h1 className="font-display text-2xl font-bold text-ink">Create your account</h1>
         <p className="mt-1 text-xs text-ink-soft">
-          Join CareerHub to unlock jobs, real-time messaging, and video interviews.
+          Join CareerHub to access jobs, internships, and recruiter tools.
         </p>
       </div>
 
-      {/* Recruiter Onboarding Notice */}
-      <div className="mt-6 rounded-2xl border border-signal/30 bg-signal/10 p-3.5 text-xs text-ink shadow-2xs">
-        <div className="flex items-start gap-2.5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-signal text-ink">
-            <Briefcase size={15} />
-          </div>
-          <div>
-            <p className="font-semibold text-ink">Looking to hire talent?</p>
-            <p className="mt-0.5 text-[11px] text-ink-soft leading-relaxed">
-              Create your account below, then request{' '}
-              <Link to="/recruiter/onboarding" className="font-bold text-signal-dark hover:underline">
-                Verified Recruiter Access
-              </Link>{' '}
-              with company registration details.
-            </p>
+      {/* Account Type Selector Tabs */}
+      <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl border border-ink/10 bg-paper/60 p-1.5 shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setAccountIntent('student')}
+          className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition ${
+            accountIntent === 'student'
+              ? 'bg-white text-ink shadow-xs border border-ink/10'
+              : 'text-ink-soft hover:text-ink'
+          }`}
+        >
+          <GraduationCap size={16} /> Job Seeker / Student
+        </button>
+        <button
+          type="button"
+          onClick={() => setAccountIntent('recruiter')}
+          className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition ${
+            accountIntent === 'recruiter'
+              ? 'bg-white text-ink shadow-xs border border-signal/40'
+              : 'text-ink-soft hover:text-ink'
+          }`}
+        >
+          <Briefcase size={16} /> Recruiter / Employer
+        </button>
+      </div>
+
+      {/* Recruiter Policy Notice */}
+      {accountIntent === 'recruiter' && (
+        <div className="mt-4 rounded-2xl border border-signal/30 bg-signal/10 p-3.5 text-xs text-ink shadow-2xs animate-fadeIn">
+          <div className="flex items-start gap-2.5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-signal text-ink">
+              <ShieldCheck size={16} />
+            </div>
+            <div>
+              <p className="font-bold text-ink flex items-center gap-1.5">
+                Verified Recruiter Onboarding
+              </p>
+              <p className="mt-0.5 text-[11px] text-ink-soft leading-relaxed">
+                Create your account below, and you will proceed to the <strong>5-step company verification & OTP flow</strong>. Full recruiter tools are activated after admin review.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Error Alert */}
       {serverError && (
@@ -152,62 +199,71 @@ export default function Register() {
           </div>
           <div className="relative flex justify-center text-[10px] uppercase">
             <span className="bg-paper px-2 text-ink-soft font-semibold tracking-wider">
-              Or create account with email
+              Or sign up with email
             </span>
           </div>
         </div>
       </div>
 
-      {/* Main Registration Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
+      {/* Registration Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Full Name */}
         <div>
-          <label className="mb-1 block text-xs font-semibold text-ink">Full Name</label>
+          <label className="mb-1 block text-xs font-semibold text-ink">
+            {accountIntent === 'recruiter' ? 'Recruiter / Contact Name' : 'Full Name'}
+          </label>
           <div className="relative">
             <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
             <input
-              placeholder="e.g. Alex Johnson"
-              aria-label="Full name"
-              {...register('name', { required: 'Name is required' })}
+              type="text"
+              placeholder={accountIntent === 'recruiter' ? 'e.g. Sarah Johnson' : 'e.g. Alex Kumar'}
+              aria-label="Full Name"
+              {...register('name', {
+                required: 'Name is required',
+                minLength: { value: 2, message: 'Name must be at least 2 characters' },
+              })}
               className="input-field pl-9"
             />
           </div>
           {errors.name && <p className="mt-1 text-xs text-danger">{errors.name.message}</p>}
         </div>
 
+        {/* Email Address */}
         <div>
-          <label className="mb-1 block text-xs font-semibold text-ink">Email Address</label>
+          <label className="mb-1 block text-xs font-semibold text-ink">
+            {accountIntent === 'recruiter' ? 'Official Work Email' : 'Email Address'}
+          </label>
           <div className="relative">
             <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
             <input
               type="email"
-              placeholder="name@example.com"
-              aria-label="Email address"
-              {...register('email', { required: 'Email is required' })}
+              placeholder={accountIntent === 'recruiter' ? 'name@company.com' : 'you@example.com'}
+              aria-label="Email"
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: 'Please enter a valid email address',
+                },
+              })}
               className="input-field pl-9"
             />
           </div>
           {errors.email && <p className="mt-1 text-xs text-danger">{errors.email.message}</p>}
         </div>
 
-        {/* Password with Strength Meter */}
+        {/* Password */}
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs font-semibold text-ink">Password</label>
-            {passwordStrength.label && (
-              <span className={`text-[10px] font-bold ${passwordStrength.textColor}`}>
-                Strength: {passwordStrength.label}
-              </span>
-            )}
-          </div>
+          <label className="mb-1 block text-xs font-semibold text-ink">Password</label>
           <div className="relative">
             <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
             <input
               type={showPassword ? 'text' : 'password'}
-              placeholder="At least 6 characters"
+              placeholder="Min. 8 characters"
               aria-label="Password"
               {...register('password', {
                 required: 'Password is required',
-                minLength: { value: 6, message: 'At least 6 characters' },
+                minLength: { value: 6, message: 'Password must be at least 6 characters' },
               })}
               className="input-field pl-9 pr-10"
             />
@@ -219,18 +275,24 @@ export default function Register() {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          {errors.password && <p className="mt-1 text-xs text-danger">{errors.password.message}</p>}
 
-          {/* Dynamic Password Strength Bar */}
+          {/* Password Strength Meter */}
           {passwordValue && (
-            <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-slate-200">
-              <div
-                className={`h-full transition-all duration-300 ${passwordStrength.color}`}
-                style={{ width: `${passwordStrength.score}%` }}
-              />
+            <div className="mt-2 space-y-1">
+              <div className="flex justify-between items-center text-[10px]">
+                <span className="text-ink-soft">Strength:</span>
+                <span className={`font-semibold ${passwordStrength.textColor}`}>
+                  {passwordStrength.label}
+                </span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-ink/10 overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-300 ${passwordStrength.color}`}
+                  style={{ width: `${passwordStrength.score}%` }}
+                />
+              </div>
             </div>
-          )}
-          {errors.password && (
-            <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
           )}
         </div>
 
@@ -283,9 +345,17 @@ export default function Register() {
         <button
           type="submit"
           disabled={loading}
-          className="btn-primary w-full py-2.5 text-xs font-bold justify-center mt-2 shadow-xs"
+          className="btn-primary w-full py-2.5 text-xs font-bold justify-center mt-2 shadow-xs gap-1.5"
         >
-          {loading ? 'Creating Account…' : 'Create Free Account'}
+          {loading ? (
+            'Creating Account…'
+          ) : accountIntent === 'recruiter' ? (
+            <>
+              Create Account & Proceed to Verification <ArrowRight size={14} />
+            </>
+          ) : (
+            'Create Free Account'
+          )}
         </button>
       </form>
 
