@@ -13,6 +13,9 @@ import {
   ShieldCheck,
   ArrowRight,
   GraduationCap,
+  CheckCircle2,
+  RotateCcw,
+  KeyRound,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
@@ -35,6 +38,7 @@ export default function Register() {
     handleSubmit,
     watch,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm({ defaultValues: { role: 'student', email: searchParams.get('email') || '' } })
 
@@ -46,7 +50,32 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
+  // Real Email OTP Verification States
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [resendTimer, setResendTimer] = useState(0)
+  const [otpEmail, setOtpEmail] = useState('')
+  const [otpCode, setOtpCode] = useState('')
+
   const passwordValue = watch('password') || ''
+  const emailValue = watch('email') || ''
+
+  // Resend Timer Countdown
+  useEffect(() => {
+    let timer
+    if (resendTimer > 0) {
+      timer = setInterval(() => setResendTimer((t) => t - 1), 1000)
+    }
+    return () => clearInterval(timer)
+  }, [resendTimer])
+
+  // Reset OTP state if user edits their email address
+  useEffect(() => {
+    if (otpSent && emailValue.toLowerCase().trim() !== otpEmail.toLowerCase().trim()) {
+      setOtpSent(false)
+      setOtpCode('')
+    }
+  }, [emailValue, otpSent, otpEmail])
 
   useEffect(() => {
     api
@@ -71,6 +100,48 @@ export default function Register() {
     window.location.href = `${baseUrl}/auth/google?intent=${encodeURIComponent(accountIntent)}&clientUrl=${clientUrl}`
   }
 
+  // Request 6-Digit OTP from backend (verifies email deliverability & sends code)
+  async function handleSendOtp() {
+    const formVals = getValues()
+    const email = formVals.email?.trim()
+    const name = formVals.name?.trim()
+    const password = formVals.password
+    const confirmPassword = formVals.confirmPassword
+
+    if (!name || name.length < 2) {
+      setServerError('Please enter your full name (minimum 2 characters).')
+      return false
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setServerError('Please enter a valid, real email address.')
+      return false
+    }
+    if (!password || password.length < 6) {
+      setServerError('Password must be at least 6 characters.')
+      return false
+    }
+    if (password !== confirmPassword) {
+      setServerError('Passwords do not match.')
+      return false
+    }
+
+    setServerError('')
+    setOtpLoading(true)
+    try {
+      const res = await api.post('/auth/send-signup-otp', { email, name })
+      setOtpSent(true)
+      setOtpEmail(email)
+      setResendTimer(60)
+      showToast(res.data.message || `Verification code sent to ${email}`, 'success')
+      return true
+    } catch (err) {
+      setServerError(err.message || 'Failed to dispatch verification code. Please check your email address.')
+      return false
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
   // Dynamic Password Strength Calculator
   const passwordStrength = useMemo(() => {
     if (!passwordValue) return { score: 0, label: '', color: 'bg-slate-200' }
@@ -92,33 +163,53 @@ export default function Register() {
     }
 
     setServerError('')
-    try {
-      if (accountIntent === 'admin') {
+
+    // Master Admin Claim Flow
+    if (accountIntent === 'admin') {
+      try {
         const res = await api.post('/auth/register-admin', {
           name: data.name,
           email: data.email,
           password: data.password,
         })
         if (res.data.token) {
-          localStorage.setItem('token', res.data.token)
+          localStorage.setItem('ch_token', res.data.token)
+          localStorage.setItem('ch_user', JSON.stringify(res.data.user))
         }
         showToast('Master Administrator initialized! Welcome to the Admin Dashboard.', 'success')
         window.location.href = '/admin/dashboard'
-        return
+      } catch (err) {
+        setServerError(err.message || 'Failed to initialize master admin.')
       }
+      return
+    }
 
+    // Step 1: If OTP has not been sent yet, request it first
+    if (!otpSent || data.email.toLowerCase().trim() !== otpEmail.toLowerCase().trim()) {
+      await handleSendOtp()
+      return
+    }
+
+    // Step 2: Validate 6-digit OTP code entered by user
+    if (!otpCode || otpCode.trim().length !== 6) {
+      setServerError('Please enter the 6-digit verification code sent to your real email inbox.')
+      return
+    }
+
+    try {
       await registerUser({
         name: data.name,
         email: data.email,
         password: data.password,
-        role: 'student', // Server enforces student baseline
+        otp: otpCode.trim(),
+        role: 'student', // Server enforces verified student baseline
       })
 
       if (accountIntent === 'recruiter') {
-        showToast('Account created! Proceeding to Recruiter Verification Wizard.', 'success')
+        showToast('Real email verified! Proceeding to Recruiter Verification Wizard.', 'success')
         navigate('/recruiter/onboarding')
       } else {
-        showToast('Welcome to CareerHub! Your account is ready.', 'success')
+        showToast('Real email verified! Welcome to CareerHub.', 'success')
         navigate('/student/dashboard')
       }
     } catch (err) {
@@ -428,6 +519,64 @@ export default function Register() {
             )}
           </div>
 
+          {/* Real Email OTP Verification Input (shown when code is dispatched) */}
+          {accountIntent !== 'admin' && otpSent && (
+            <div className="rounded-2xl border-2 border-signal/50 bg-signal/10 p-4 animate-fadeIn space-y-3">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 size={18} className="text-signal-dark shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-ink">Real Email Verification Code</p>
+                  <p className="text-[11px] text-ink-soft leading-tight mt-0.5">
+                    We sent a 6-digit code to <strong className="text-ink">{otpEmail}</strong>. Enter it below to complete registration:
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-ink mb-1">Enter 6-Digit Code</label>
+                <div className="relative">
+                  <KeyRound size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="••••••"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="input-field pl-9 text-center font-mono text-base tracking-[0.3em] font-bold bg-white"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] pt-1">
+                <button
+                  type="button"
+                  disabled={resendTimer > 0 || otpLoading}
+                  onClick={handleSendOtp}
+                  className={`flex items-center gap-1 font-semibold ${
+                    resendTimer > 0
+                      ? 'text-ink-soft/70 cursor-not-allowed'
+                      : 'text-signal-dark hover:underline cursor-pointer'
+                  }`}
+                >
+                  <RotateCcw size={13} className={otpLoading ? 'animate-spin' : ''} />
+                  {resendTimer > 0 ? `Resend Code (${resendTimer}s)` : 'Resend Code'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtpSent(false)
+                    setOtpCode('')
+                  }}
+                  className="text-ink-soft hover:text-ink hover:underline cursor-pointer"
+                >
+                  Change Email
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Terms Agreement Checkbox */}
           <div className="flex items-start gap-2 pt-1">
             <input
@@ -448,21 +597,23 @@ export default function Register() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || otpLoading}
             className="btn-primary w-full py-2.5 text-xs font-bold justify-center mt-2 shadow-xs gap-1.5"
           >
-            {loading ? (
-              'Creating Account…'
+            {loading || otpLoading ? (
+              otpLoading ? 'Dispatching Verification Code…' : 'Verifying Account…'
             ) : accountIntent === 'admin' ? (
               <>
                 <ShieldCheck size={16} /> Claim Master Admin & Initialize Platform
               </>
-            ) : accountIntent === 'recruiter' ? (
+            ) : otpSent ? (
               <>
-                Create Account & Proceed to Verification <ArrowRight size={14} />
+                <CheckCircle2 size={16} /> Verify Code & Complete Registration
               </>
             ) : (
-              'Create Free Account'
+              <>
+                <Mail size={15} /> Send Verification Code & Continue
+              </>
             )}
           </button>
         </form>

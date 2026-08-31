@@ -1,5 +1,6 @@
 const express = require('express')
 const {
+  sendSignupOtp,
   register,
   login,
   getMe,
@@ -17,6 +18,7 @@ const router = express.Router()
 
 router.get('/admin-status', getAdminStatus)
 router.post('/register-admin', registerAdmin)
+router.post('/send-signup-otp', sendSignupOtp)
 router.post('/register', register)
 router.post('/login', login)
 router.get('/me', protect, getMe)

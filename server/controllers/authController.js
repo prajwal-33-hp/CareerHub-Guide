@@ -1,7 +1,10 @@
+const bcrypt = require('bcryptjs')
 const asyncHandler = require('../utils/asyncHandler')
 const generateToken = require('../utils/generateToken')
 const User = require('../models/User')
-const { sendPasswordResetEmail } = require('../services/emailService')
+const VerificationOtp = require('../models/VerificationOtp')
+const { validateRealEmail } = require('../utils/emailValidator')
+const { sendPasswordResetEmail, sendSignupOtpEmail } = require('../services/emailService')
 const {
   getGoogleAuthUrl,
   verifySignedState,
@@ -146,31 +149,146 @@ const googleCallback = asyncHandler(async (req, res) => {
   }
 })
 
+// @route   POST /api/auth/send-signup-otp
+// @access  Public
+const sendSignupOtp = asyncHandler(async (req, res) => {
+  const { email, name } = req.body
+
+  if (!email) {
+    res.status(400)
+    throw new Error('Email address is required')
+  }
+
+  // 1. Strict real email validation & DNS MX verification
+  const emailCheck = await validateRealEmail(email)
+  if (!emailCheck.valid) {
+    res.status(400)
+    throw new Error(emailCheck.error || 'Invalid or non-deliverable email address')
+  }
+
+  const normalizedEmail = emailCheck.normalizedEmail
+
+  // 2. Check if user already exists
+  const existing = await User.findOne({ email: normalizedEmail })
+  if (existing) {
+    res.status(400)
+    throw new Error('An account with this email address already exists. Please log in.')
+  }
+
+  // 3. Check rate limiting / recent OTP dispatch (30s cooldown)
+  const recentOtp = await VerificationOtp.findOne({
+    target: normalizedEmail,
+    type: 'email',
+    lastSentAt: { $gt: new Date(Date.now() - 30 * 1000) },
+  })
+  if (recentOtp) {
+    return res.json({
+      success: true,
+      message: `A verification code was recently sent to ${normalizedEmail}. Please check your inbox.`,
+      email: normalizedEmail,
+    })
+  }
+
+  // 4. Generate cryptographically random 6-digit OTP
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
+  const otpHash = await bcrypt.hash(otpCode, 10)
+
+  // 5. Save or update OTP document with 10-minute TTL
+  await VerificationOtp.deleteMany({ target: normalizedEmail, type: 'email' })
+  await VerificationOtp.create({
+    target: normalizedEmail,
+    type: 'email',
+    otpHash,
+    code: otpCode,
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    attempts: 0,
+    lastSentAt: new Date(),
+  })
+
+  // 6. Send email via SMTP relay (Gmail / Brevo)
+  sendSignupOtpEmail(normalizedEmail, otpCode, name || 'User').catch((err) =>
+    console.error(`[EmailService] Signup OTP email delivery failed for ${normalizedEmail}:`, err.message)
+  )
+
+  res.json({
+    success: true,
+    message: `A 6-digit verification code has been dispatched to ${normalizedEmail}. Please check your inbox.`,
+    email: normalizedEmail,
+  })
+})
+
 // @route   POST /api/auth/register
 // @access  Public
 const register = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body
+  const { name, email, password, otp } = req.body
 
   if (!name || !email || !password) {
     res.status(400)
     throw new Error('Name, email, and password are required')
   }
 
-  const existing = await User.findOne({ email })
+  if (password.length < 6) {
+    res.status(400)
+    throw new Error('Password must be at least 6 characters')
+  }
+
+  if (!otp) {
+    res.status(400)
+    throw new Error('Email verification code is required. Please verify your real email address.')
+  }
+
+  // 1. Strict real email validation
+  const emailCheck = await validateRealEmail(email)
+  if (!emailCheck.valid) {
+    res.status(400)
+    throw new Error(emailCheck.error || 'Invalid email address')
+  }
+
+  const normalizedEmail = emailCheck.normalizedEmail
+
+  const existing = await User.findOne({ email: normalizedEmail })
   if (existing) {
     res.status(400)
     throw new Error('An account with this email already exists')
   }
 
-  // Under the verification system, all new accounts are registered as standard
-  // candidate accounts ('student'). Users who wish to recruit must submit an
-  // application and be approved by the admin team.
+  // 2. Verify 6-digit OTP code against MongoDB VerificationOtp
+  const otpDoc = await VerificationOtp.findOne({
+    target: normalizedEmail,
+    type: 'email',
+    expiresAt: { $gt: new Date() },
+  }).select('+otpHash')
+
+  if (!otpDoc) {
+    res.status(400)
+    throw new Error('Verification code has expired or was not requested. Please click Resend Code.')
+  }
+
+  if (otpDoc.attempts >= otpDoc.maxAttempts) {
+    await VerificationOtp.deleteOne({ _id: otpDoc._id })
+    res.status(400)
+    throw new Error('Too many invalid verification attempts. Please request a new code.')
+  }
+
+  const isMatch = await otpDoc.compareOtp(otp)
+  if (!isMatch) {
+    otpDoc.attempts += 1
+    await otpDoc.save()
+    res.status(400)
+    throw new Error('Invalid verification code. Please check your email inbox and try again.')
+  }
+
+  // Clean up used OTP doc
+  await VerificationOtp.deleteOne({ _id: otpDoc._id })
+
+  // 3. Under the verification system, all new accounts are registered as verified candidate accounts ('student').
   const user = await User.create({
-    name,
-    email,
+    name: name.trim(),
+    email: normalizedEmail,
     password,
     role: 'student',
     recruiterStatus: 'NONE',
+    isEmailVerified: true,
   })
 
   res.status(201).json({
@@ -398,7 +516,14 @@ const registerAdmin = asyncHandler(async (req, res) => {
     )
   }
 
-  const normalizedEmail = email.toLowerCase().trim()
+  // Validate real email
+  const emailCheck = await validateRealEmail(email)
+  if (!emailCheck.valid) {
+    res.status(400)
+    throw new Error(emailCheck.error || 'Invalid or non-deliverable email address')
+  }
+
+  const normalizedEmail = emailCheck.normalizedEmail
   let user = await User.findOne({ email: normalizedEmail })
 
   if (user) {
@@ -416,6 +541,7 @@ const registerAdmin = asyncHandler(async (req, res) => {
       password,
       role: 'admin',
       status: 'active',
+      isEmailVerified: true,
     })
   }
 
@@ -428,6 +554,7 @@ const registerAdmin = asyncHandler(async (req, res) => {
 })
 
 module.exports = {
+  sendSignupOtp,
   register,
   login,
   getMe,

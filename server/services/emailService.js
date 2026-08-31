@@ -156,6 +156,53 @@ async function sendEmail({ to, subject, html, text }) {
 // ==========================================
 
 /**
+ * Send 6-Digit Email Verification Code for User Registration / Signup
+ */
+async function sendSignupOtpEmail(toEmail, otpCode, recipientName = 'User') {
+  const subject = `Your CareerHub Account Verification Code: ${otpCode}`
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #0f172a; }
+          .card { max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+          .badge { display: inline-block; background: #dcfce7; color: #15803d; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 16px; }
+          .code-box { background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
+          .code { font-family: monospace; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0f172a; }
+          .footer { font-size: 11px; color: #64748b; margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 16px; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="badge">Account Verification</div>
+          <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px;">Verify Your Email Address</h2>
+          <p style="font-size: 14px; color: #475569; line-height: 1.6; margin: 0 0 16px 0;">
+            Hello <strong>${recipientName}</strong>,<br/>
+            Welcome to CareerHub! To complete your registration and secure your account, please enter the 6-digit verification code below:
+          </p>
+
+          <div class="code-box">
+            <div class="code">${otpCode}</div>
+            <p style="font-size: 11px; color: #64748b; margin: 8px 0 0 0;">Valid for 10 minutes. Do not share this code with anyone.</p>
+          </div>
+
+          <p style="font-size: 13px; color: #64748b; line-height: 1.5;">
+            If you did not sign up for CareerHub, you can safely ignore this email.
+          </p>
+
+          <div class="footer">
+            © ${new Date().getFullYear()} CareerHub • Real Email Verification Engine
+          </div>
+        </div>
+      </body>
+    </html>
+  `
+  return await sendEmail({ to: toEmail, subject, html })
+}
+
+/**
  * Send 6-Digit OTP Verification Email for Recruiter Onboarding
  */
 async function sendOtpEmail(toEmail, otpCode, recipientName = 'Recruiter') {
@@ -394,6 +441,7 @@ async function sendPasswordResetEmail(toEmail, resetCode, recipientName = 'User'
 
 module.exports = {
   sendEmail,
+  sendSignupOtpEmail,
   sendOtpEmail,
   sendPhoneOtpEmail,
   sendInviteEmail,
