@@ -205,11 +205,11 @@ async function validateRealEmail(email) {
 
   // 4. Provider-specific strict validation rules for trusted mail hosts
   if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    // Gmail usernames must be between 6 and 30 characters (Google RFC)
-    if (localPart.length < 6 || localPart.length > 30) {
+    // Gmail usernames must be between 3 and 30 characters
+    if (localPart.length < 3 || localPart.length > 30) {
       return {
         valid: false,
-        error: 'Gmail addresses must be between 6 and 30 characters in length.',
+        error: 'Gmail addresses must be between 3 and 30 characters in length.',
       }
     }
     // Only letters (a-z), numbers (0-9), and periods (.) allowed in Gmail usernames
@@ -223,20 +223,20 @@ async function validateRealEmail(email) {
   }
 
   if (domain === 'yahoo.com' || domain === 'yahoo.co.in' || domain === 'yahoo.co.uk') {
-    if (localPart.length < 4 || localPart.length > 32) {
+    if (localPart.length < 3 || localPart.length > 32) {
       return {
         valid: false,
-        error: 'Yahoo email usernames must be between 4 and 32 characters in length.',
+        error: 'Yahoo email usernames must be between 3 and 32 characters in length.',
       }
     }
     return { valid: true, normalizedEmail: normalized, domain }
   }
 
   if (domain === 'outlook.com' || domain === 'hotmail.com' || domain === 'live.com' || domain === 'msn.com') {
-    if (localPart.length < 3 || localPart.length > 64) {
+    if (localPart.length < 3 || localPart.length > 30) {
       return {
         valid: false,
-        error: 'Microsoft email usernames must be at least 3 characters in length.',
+        error: 'Microsoft email usernames must be between 3 and 30 characters in length.',
       }
     }
     return { valid: true, normalizedEmail: normalized, domain }
