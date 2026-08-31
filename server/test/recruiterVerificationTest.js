@@ -353,6 +353,16 @@ async function runTests() {
     assert(suspendedUser.status === 'suspended', 'User marked as suspended')
     assert(!suspendedUser.isApprovedRecruiter(), 'Suspended user isApprovedRecruiter() returns false')
 
+    // Teardown test artifacts
+    console.log('\n[10] Cleaning up temporary test artifacts...')
+    await Job.deleteMany({ _id: job._id })
+    await Company.deleteMany({ _id: company._id })
+    await CompanyMember.deleteMany({ company: company._id })
+    await CompanyInvite.deleteMany({ company: company._id })
+    await RecruiterApplication.deleteMany({ _id: { $in: [app._id, rejectApp._id] } })
+    await User.deleteMany({ _id: { $in: [adminUser._id, candidate._id, secondUser._id, rejectedApplicant._id] } })
+    await VerificationOtp.deleteMany({ target: { $in: ['john.doe@acmetech.com', '+919876543210'] } })
+
     // Final Summary
     console.log('\n========================================')
     console.log(`TEST SUMMARY: ${passed} Passed, ${failed} Failed`)
