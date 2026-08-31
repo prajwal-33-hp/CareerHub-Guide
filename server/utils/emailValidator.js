@@ -170,18 +170,33 @@ async function checkExternalVerificationApi(email) {
     }
   }
 
-  // 3. ZeroBounce API
+  // 3. ZeroBounce API (Real-Time SMTP & AI Mailbox Verification)
   if (process.env.ZEROBOUNCE_API_KEY) {
     try {
       const url = `https://api.zerobounce.net/v2/validate?api_key=${process.env.ZEROBOUNCE_API_KEY}&email=${encodeURIComponent(email)}`
-      const res = await fetch(url, { signal: AbortSignal.timeout(3500) })
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) })
       if (res.ok) {
         const data = await res.json()
         if (data.status === 'invalid') {
+          const sub = data.sub_status ? ` (${data.sub_status.replace(/_/g, ' ')})` : ''
           return {
             checked: true,
             valid: false,
-            error: 'This email address does not exist in real life. Please check for typos or use an active email account.',
+            error: `This email mailbox does not exist in real life${sub}. Please check for typos or enter a real email account.`,
+          }
+        }
+        if (data.status === 'abuse' || data.status === 'spamtrap') {
+          return {
+            checked: true,
+            valid: false,
+            error: 'Disposable, temporary, or high-risk email addresses are strictly prohibited.',
+          }
+        }
+        if (data.status === 'do_not_mail') {
+          return {
+            checked: true,
+            valid: false,
+            error: 'This email address cannot receive mail. Please use an active, deliverable email.',
           }
         }
         return { checked: true, valid: true }
