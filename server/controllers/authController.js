@@ -193,7 +193,24 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
   const otpHash = await bcrypt.hash(otpCode, 10)
 
-  // 5. Save or update OTP document with 10-minute TTL
+  // 5. Dispatch email via live SMTP relay and verify mailbox existence
+  const dispatch = await sendSignupOtpEmail(normalizedEmail, otpCode, name || 'User')
+  if (!dispatch.success) {
+    if (dispatch.isNonExistent) {
+      res.status(400)
+      throw new Error(
+        dispatch.error ||
+          `The email address "${normalizedEmail}" does not exist in real life. Please check for typos or use an active email account.`
+      )
+    }
+    res.status(400)
+    throw new Error(
+      dispatch.error ||
+        'Unable to deliver verification email to this address. Please ensure this email is real, active, and typed correctly.'
+    )
+  }
+
+  // 6. Save OTP document with 10-minute TTL only after confirmed email delivery
   await VerificationOtp.deleteMany({ target: normalizedEmail, type: 'email' })
   await VerificationOtp.create({
     target: normalizedEmail,
@@ -204,11 +221,6 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
     attempts: 0,
     lastSentAt: new Date(),
   })
-
-  // 6. Send email via SMTP relay (Gmail / Brevo)
-  sendSignupOtpEmail(normalizedEmail, otpCode, name || 'User').catch((err) =>
-    console.error(`[EmailService] Signup OTP email delivery failed for ${normalizedEmail}:`, err.message)
-  )
 
   res.json({
     success: true,

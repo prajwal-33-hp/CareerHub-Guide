@@ -1,5 +1,28 @@
 const dns = require('dns').promises
 
+// Common typos for major email providers
+const COMMON_TYPO_DOMAINS = {
+  'gmai.com': 'gmail.com',
+  'gamil.com': 'gmail.com',
+  'gmial.com': 'gmail.com',
+  'gmaill.com': 'gmail.com',
+  'gmal.com': 'gmail.com',
+  'gmaul.com': 'gmail.com',
+  'gemail.com': 'gmail.com',
+  'yaho.com': 'yahoo.com',
+  'yahooo.com': 'yahoo.com',
+  'yhaoo.com': 'yahoo.com',
+  'yaho.co.in': 'yahoo.co.in',
+  'hotmial.com': 'hotmail.com',
+  'hotmai.com': 'hotmail.com',
+  'hotmaill.com': 'hotmail.com',
+  'outlok.com': 'outlook.com',
+  'outloo.com': 'outlook.com',
+  'outlk.com': 'outlook.com',
+  'iclou.com': 'icloud.com',
+  'iclod.com': 'icloud.com',
+}
+
 // Comprehensive list of known disposable, temporary, and fake email providers
 const DISPOSABLE_DOMAINS = new Set([
   'mailinator.com',
@@ -58,7 +81,7 @@ const DISPOSABLE_DOMAINS = new Set([
   'trashmail.ws',
 ])
 
-// Trusted standard public email providers (skip DNS check for maximum speed)
+// Trusted standard public email providers
 const TRUSTED_DOMAINS = new Set([
   'gmail.com',
   'googlemail.com',
@@ -83,7 +106,7 @@ const TRUSTED_DOMAINS = new Set([
 ])
 
 /**
- * Validates whether an email is a genuine, non-disposable, deliverable address.
+ * Validates whether an email is a genuine, deliverable address.
  * @param {string} email
  * @returns {Promise<{ valid: boolean, error?: string, normalizedEmail: string, domain: string }>}
  */
@@ -111,11 +134,23 @@ async function validateRealEmail(email) {
     return { valid: false, error: 'Email username is invalid or too long.' }
   }
 
+  if (localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) {
+    return { valid: false, error: 'Email username contains invalid punctuation.' }
+  }
+
   if (!domain || domain.length > 255 || !domain.includes('.')) {
     return { valid: false, error: 'Email domain is invalid.' }
   }
 
-  // 1. Check against disposable / fake domain blocklist
+  // 1. Check for common domain typos
+  if (COMMON_TYPO_DOMAINS[domain]) {
+    return {
+      valid: false,
+      error: `The email domain "${domain}" is not a valid mail host. Did you mean "@${COMMON_TYPO_DOMAINS[domain]}"?`,
+    }
+  }
+
+  // 2. Check against disposable / fake domain blocklist
   if (DISPOSABLE_DOMAINS.has(domain)) {
     return {
       valid: false,
@@ -123,7 +158,7 @@ async function validateRealEmail(email) {
     }
   }
 
-  // 2. Check for obvious dummy patterns
+  // 3. Check for obvious dummy patterns
   if (
     domain.endsWith('.invalid') ||
     domain.endsWith('.test') ||
@@ -131,15 +166,18 @@ async function validateRealEmail(email) {
     domain.endsWith('.localhost') ||
     domain.endsWith('.local')
   ) {
-    return { valid: false, error: 'Test and placeholder domains are not allowed.' }
+    return { valid: false, error: 'Test and placeholder email domains do not exist in real life.' }
   }
 
-  // 3. If it's a known trusted provider, instantly pass
+  // 4. If it's a known trusted provider, check local part validity
   if (TRUSTED_DOMAINS.has(domain)) {
+    if (localPart.length < 3) {
+      return { valid: false, error: 'This email username is too short to be a valid account.' }
+    }
     return { valid: true, normalizedEmail: normalized, domain }
   }
 
-  // 4. For custom/corporate domains, verify DNS MX (Mail Exchange) records exist
+  // 5. For custom/corporate domains, verify DNS MX (Mail Exchange) records exist
   try {
     const mxRecords = await Promise.race([
       dns.resolveMx(domain),
@@ -149,18 +187,16 @@ async function validateRealEmail(email) {
     if (!mxRecords || mxRecords.length === 0) {
       return {
         valid: false,
-        error: `The domain "${domain}" has no active mail servers configured to receive emails. Please provide a real email.`,
+        error: `The domain "${domain}" does not exist or has no active mail servers. Please enter a real email.`,
       }
     }
   } catch (err) {
-    // If ENOTFOUND or ENODATA, domain cannot receive mail
-    if (err.code === 'ENOTFOUND' || err.code === 'ENODATA') {
+    if (err.code === 'ENOTFOUND' || err.code === 'ENODATA' || err.code === 'ESERVFAIL') {
       return {
         valid: false,
-        error: `The email domain "${domain}" does not exist or cannot receive mail. Please use a real email address.`,
+        error: `The domain "${domain}" does not exist in real life. Please use a real email address.`,
       }
     }
-    // If network timeout in dev, log warning but allow graceful degradation
     console.warn(`[EmailValidator] MX check warning for ${domain}:`, err.message)
   }
 
@@ -171,4 +207,5 @@ module.exports = {
   validateRealEmail,
   DISPOSABLE_DOMAINS,
   TRUSTED_DOMAINS,
+  COMMON_TYPO_DOMAINS,
 }

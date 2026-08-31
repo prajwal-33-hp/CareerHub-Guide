@@ -88,6 +88,28 @@ async function getEtherealTransporter() {
 
 let brevoDisabled = false
 
+// Helper to test if SMTP error represents a non-existent email mailbox
+function isNonExistentEmailError(err) {
+  if (!err) return false
+  const msg = (err.message || '').toLowerCase()
+  const code = err.responseCode || err.code
+  return (
+    code === 550 ||
+    code === 551 ||
+    code === 553 ||
+    code === 554 ||
+    msg.includes('5.1.1') ||
+    msg.includes('does not exist') ||
+    msg.includes('user unknown') ||
+    msg.includes('mailbox unavailable') ||
+    msg.includes('recipient address rejected') ||
+    msg.includes('invalid recipient') ||
+    msg.includes('no such user') ||
+    msg.includes('account does not exist') ||
+    msg.includes('address not found')
+  )
+}
+
 // Utility to dispatch email with automatic failover (Gmail / Brevo -> Ethereal)
 async function sendEmail({ to, subject, html, text }) {
   const fromAddress =
@@ -116,6 +138,14 @@ async function sendEmail({ to, subject, html, text }) {
       console.log(`[EmailService] ⚡ Email delivered via Gmail SMTP to ${to} (MessageID: ${info.messageId})`)
       return { success: true, messageId: info.messageId, provider: 'gmail' }
     } catch (err) {
+      if (isNonExistentEmailError(err)) {
+        console.warn(`[EmailService] Recipient mailbox ${to} does not exist:`, err.message)
+        return {
+          success: false,
+          isNonExistent: true,
+          error: `The email address "${to}" does not exist in real life. Please check for typos or use an active email account.`,
+        }
+      }
       console.warn(`[EmailService] Gmail delivery failed (${err.message}). Attempting Brevo...`)
     }
   }
@@ -129,6 +159,14 @@ async function sendEmail({ to, subject, html, text }) {
         console.log(`[EmailService] ⚡ Email delivered via Brevo to ${to} (MessageID: ${info.messageId})`)
         return { success: true, messageId: info.messageId, provider: 'brevo' }
       } catch (err) {
+        if (isNonExistentEmailError(err)) {
+          console.warn(`[EmailService] Recipient mailbox ${to} does not exist:`, err.message)
+          return {
+            success: false,
+            isNonExistent: true,
+            error: `The email address "${to}" does not exist in real life. Please check for typos or use an active email account.`,
+          }
+        }
         console.warn(`[EmailService] Brevo delivery failed (${err.message}). Disabling Brevo for subsequent calls.`)
         brevoDisabled = true
       }
