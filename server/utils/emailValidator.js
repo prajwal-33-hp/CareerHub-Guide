@@ -203,7 +203,45 @@ async function validateRealEmail(email) {
     return { valid: false, error: 'Test and placeholder email domains do not exist in real life.' }
   }
 
-  // 4. If it's a known trusted provider, check local part validity
+  // 4. Provider-specific strict validation rules for trusted mail hosts
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    // Gmail usernames must be between 6 and 30 characters (Google RFC)
+    if (localPart.length < 6 || localPart.length > 30) {
+      return {
+        valid: false,
+        error: 'Gmail addresses must be between 6 and 30 characters in length.',
+      }
+    }
+    // Only letters (a-z), numbers (0-9), and periods (.) allowed in Gmail usernames
+    if (!/^[a-z0-9.]+$/i.test(localPart)) {
+      return {
+        valid: false,
+        error: 'Gmail usernames can only contain letters, numbers, and periods.',
+      }
+    }
+    return { valid: true, normalizedEmail: normalized, domain }
+  }
+
+  if (domain === 'yahoo.com' || domain === 'yahoo.co.in' || domain === 'yahoo.co.uk') {
+    if (localPart.length < 4 || localPart.length > 32) {
+      return {
+        valid: false,
+        error: 'Yahoo email usernames must be between 4 and 32 characters in length.',
+      }
+    }
+    return { valid: true, normalizedEmail: normalized, domain }
+  }
+
+  if (domain === 'outlook.com' || domain === 'hotmail.com' || domain === 'live.com' || domain === 'msn.com') {
+    if (localPart.length < 3 || localPart.length > 64) {
+      return {
+        valid: false,
+        error: 'Microsoft email usernames must be at least 3 characters in length.',
+      }
+    }
+    return { valid: true, normalizedEmail: normalized, domain }
+  }
+
   if (TRUSTED_DOMAINS.has(domain)) {
     if (localPart.length < 3) {
       return { valid: false, error: 'This email username is too short to be a valid account.' }
