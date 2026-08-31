@@ -67,17 +67,23 @@ export default function StudentMessages() {
     }
   }
 
-  async function handleFindOrCreateThread(recipientId, jobId, existingConvs = conversations) {
+  async function handleFindOrCreateThread(recipientId, jobId, existingConvs = []) {
     try {
       const { data } = await api.post('/messages/conversations/find-or-create', {
         recipientId,
         jobId,
       })
       if (data.conversation) {
-        const found = existingConvs.find((c) => c._id === data.conversation._id)
-        if (!found) {
-          setConversations((prev) => [data.conversation, ...prev])
-        }
+        setConversations((prev) => {
+          const list = prev.length > 0 ? prev : existingConvs
+          const found = list.find((c) => String(c._id) === String(data.conversation._id))
+          if (found) {
+            return list.map((c) =>
+              String(c._id) === String(data.conversation._id) ? data.conversation : c
+            )
+          }
+          return [data.conversation, ...list]
+        })
         selectConversation(data.conversation)
       }
     } catch (err) {
@@ -249,13 +255,16 @@ export default function StudentMessages() {
     }
   }
 
-  const filteredConversations = conversations.filter((c) => {
-    if (!searchQuery.trim()) return true
-    const q = searchQuery.toLowerCase()
-    const nameMatch = c.otherParticipant?.name?.toLowerCase().includes(q)
-    const jobMatch = c.job?.title?.toLowerCase().includes(q)
-    return nameMatch || jobMatch
-  })
+  const filteredConversations = conversations
+    .filter((c, idx, arr) => arr.findIndex((x) => String(x._id) === String(c._id)) === idx)
+    .filter((c) => {
+      if (!searchQuery.trim()) return true
+      const q = searchQuery.toLowerCase()
+      const nameMatch = c.otherParticipant?.name?.toLowerCase().includes(q)
+      const emailMatch = c.otherParticipant?.email?.toLowerCase().includes(q)
+      const jobMatch = c.job?.title?.toLowerCase().includes(q)
+      return nameMatch || emailMatch || jobMatch
+    })
 
   function renderMessageContent(text, isMine) {
     // Check if message is a video interview invitation
@@ -425,6 +434,12 @@ export default function StudentMessages() {
                           </span>
                         )}
                       </div>
+
+                      {other?.email && (
+                        <p className="text-[10px] text-ink-soft/80 truncate font-mono">
+                          {other.email}
+                        </p>
+                      )}
 
                       {conv.job?.title && (
                         <p className="flex items-center gap-1 text-[11px] font-medium text-signal-dark truncate">
