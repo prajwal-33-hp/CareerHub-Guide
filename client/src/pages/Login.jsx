@@ -201,9 +201,6 @@ export default function Login() {
               key={id}
               onClick={() => {
                 setValue('role', id)
-                if (id === 'admin' && adminStatus.hasAdmin && adminStatus.adminEmail) {
-                  setValue('email', adminStatus.adminEmail)
-                }
               }}
               className={`flex cursor-pointer flex-col items-center rounded-xl border p-2.5 text-center transition ${isSelected
                   ? 'border-signal bg-signal/15 text-ink shadow-2xs'
@@ -308,7 +305,7 @@ export default function Login() {
             <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
             <input
               type="email"
-              placeholder="you@example.com"
+              placeholder="Enter your registered email"
               aria-label="Email address"
               {...register('email', { required: 'Email is required' })}
               className="input-field pl-9"
@@ -404,7 +401,7 @@ export default function Login() {
               <label className="mb-1 block text-xs font-semibold text-ink">Account Email</label>
               <input
                 type="email"
-                placeholder="name@example.com"
+                placeholder="Enter your registered email"
                 value={forgotEmail}
                 onChange={(e) => setForgotEmail(e.target.value)}
                 className="input-field text-xs"

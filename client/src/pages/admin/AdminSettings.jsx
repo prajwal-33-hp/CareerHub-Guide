@@ -23,8 +23,8 @@ export default function AdminSettings() {
   const { showToast } = useToast()
 
   // Account State
-  const [name, setName] = useState(user?.name || 'Admin User')
-  const [email, setEmail] = useState(user?.email || 'admin@careerhub.com')
+  const [name, setName] = useState(user?.name || '')
+  const [email, setEmail] = useState(user?.email || '')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')

@@ -426,10 +426,10 @@ export default function Register() {
                 type="email"
                 placeholder={
                   accountIntent === 'admin'
-                    ? 'your.personal.or.work.email@gmail.com'
+                    ? 'Enter your master admin email'
                     : accountIntent === 'recruiter'
-                    ? 'name@company.com'
-                    : 'you@example.com'
+                    ? 'Enter your corporate work email'
+                    : 'Enter your personal email address'
                 }
                 aria-label="Email"
                 {...register('email', {
