@@ -27,7 +27,9 @@ export default function LatestJobs({ type = 'Full Time', title, viewAllTo }) {
     }
   }, [type])
 
-  const latestJobs = jobs.slice(0, 4)
+  if (!loading && latestJobs.length === 0) {
+    return null
+  }
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
@@ -43,12 +45,8 @@ export default function LatestJobs({ type = 'Full Time', title, viewAllTo }) {
           Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="h-[220px] animate-pulse rounded-3xl bg-paper" />
           ))
-        ) : latestJobs.length > 0 ? (
-          latestJobs.map((job) => <JobCard key={job._id} job={job} />)
         ) : (
-          <div className="rounded-lg border border-dashed border-ink/20 py-12 text-center text-sm text-ink-soft">
-            No recent {type.toLowerCase()} jobs found.
-          </div>
+          latestJobs.map((job) => <JobCard key={job._id} job={job} />)
         )}
       </div>
     </section>

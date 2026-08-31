@@ -27,6 +27,10 @@ export default function FeaturedCompanies() {
 
   const featured = companies.slice(0, 5)
 
+  if (!loading && featured.length === 0) {
+    return null
+  }
+
   return (
     <section className="bg-white py-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -36,7 +40,7 @@ export default function FeaturedCompanies() {
             Array.from({ length: 5 }).map((_, index) => (
               <div key={index} className="h-24 animate-pulse rounded-lg border border-ink/10 bg-paper" />
             ))
-          ) : featured.length > 0 ? (
+          ) : (
             featured.map((c) => (
               <Link
                 key={c._id}
@@ -50,8 +54,6 @@ export default function FeaturedCompanies() {
                 <p className="text-xs text-ink-soft">{c.industry || 'Hiring now'}</p>
               </Link>
             ))
-          ) : (
-            <p className="text-sm text-ink-soft">No featured companies available right now.</p>
           )}
         </div>
       </div>

@@ -86,11 +86,13 @@ async function getEtherealTransporter() {
   }
 }
 
-// Utility to dispatch email with automatic failover (Brevo -> Gmail -> Ethereal)
+let brevoDisabled = false
+
+// Utility to dispatch email with automatic failover (Gmail / Brevo -> Ethereal)
 async function sendEmail({ to, subject, html, text }) {
   const fromAddress =
     process.env.EMAIL_FROM ||
-    `"CareerHub Verifications" <${process.env.BREVO_SMTP_USER || process.env.GMAIL_USER || process.env.SMTP_USER || 'no-reply@careerhub.com'}>`
+    `"CareerHub Verifications" <${process.env.GMAIL_USER || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'no-reply@careerhub.com'}>`
 
   const mailOptions = {
     from: fromAddress,
@@ -106,27 +108,30 @@ async function sendEmail({ to, subject, html, text }) {
     },
   }
 
-  // 1. Attempt Primary: Brevo (Ultra-fast instant sub-second delivery)
-  const brevo = getBrevoTransporter()
-  if (brevo) {
-    try {
-      const info = await brevo.sendMail(mailOptions)
-      console.log(`[EmailService] ⚡ Instant email delivered via Brevo to ${to} (MessageID: ${info.messageId})`)
-      return { success: true, messageId: info.messageId, provider: 'brevo' }
-    } catch (err) {
-      console.warn(`[EmailService] Brevo delivery failed (${err.message}). Attempting Gmail fallback...`)
-    }
-  }
-
-  // 2. Attempt Fallback: Gmail SMTP App Password
+  // 1. Attempt Gmail SMTP (Verified & Fast)
   const gmail = getGmailTransporter()
   if (gmail) {
     try {
       const info = await gmail.sendMail(mailOptions)
-      console.log(`[EmailService] Email delivered via Gmail SMTP to ${to} (MessageID: ${info.messageId})`)
+      console.log(`[EmailService] ⚡ Email delivered via Gmail SMTP to ${to} (MessageID: ${info.messageId})`)
       return { success: true, messageId: info.messageId, provider: 'gmail' }
     } catch (err) {
-      console.warn(`[EmailService] Gmail delivery failed (${err.message}). Attempting dev transport...`)
+      console.warn(`[EmailService] Gmail delivery failed (${err.message}). Attempting Brevo...`)
+    }
+  }
+
+  // 2. Attempt Brevo (if configured and not marked disabled)
+  if (!brevoDisabled) {
+    const brevo = getBrevoTransporter()
+    if (brevo) {
+      try {
+        const info = await brevo.sendMail(mailOptions)
+        console.log(`[EmailService] ⚡ Email delivered via Brevo to ${to} (MessageID: ${info.messageId})`)
+        return { success: true, messageId: info.messageId, provider: 'brevo' }
+      } catch (err) {
+        console.warn(`[EmailService] Brevo delivery failed (${err.message}). Disabling Brevo for subsequent calls.`)
+        brevoDisabled = true
+      }
     }
   }
 
