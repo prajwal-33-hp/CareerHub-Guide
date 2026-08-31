@@ -224,49 +224,20 @@ export default function Login() {
         })}
       </div>
 
-      {/* Admin Portal Banner */}
-      {selectedRole === 'admin' && (
-        adminStatus.hasAdmin ? (
-          <div className="mt-4 rounded-xl border border-signal/40 bg-signal/10 p-3 text-xs text-ink flex items-start gap-2.5">
-            <ShieldCheck size={18} className="text-signal-dark shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-bold text-ink">Master Administrator Portal</p>
-              <p className="text-[11px] text-ink-soft mt-0.5 leading-normal">
-                Exclusive single-owner login configured for platform oversight, recruiter verification, and system management.
-              </p>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="font-mono text-[11px] bg-white/80 border border-ink/10 px-2 py-0.5 rounded text-ink font-semibold">
-                  {adminStatus.adminEmail}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setValue('email', adminStatus.adminEmail)
-                  }}
-                  className="text-[11px] font-bold text-signal-dark hover:underline cursor-pointer"
-                >
-                  Fill Email
-                </button>
-              </div>
-            </div>
+      {/* Admin Portal Notice (Only shown if no admin is registered yet) */}
+      {selectedRole === 'admin' && !adminStatus.hasAdmin && (
+        <div className="mt-4 rounded-xl border border-signal/40 bg-signal/15 p-4 text-xs text-ink flex items-start gap-2.5">
+          <ShieldCheck size={20} className="text-signal-dark shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-bold text-ink text-sm">No Master Admin Initialized Yet</p>
+            <Link
+              to="/register?role=admin"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-ink px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-ink/90 transition"
+            >
+              <ShieldCheck size={14} /> Claim Master Admin Ownership →
+            </Link>
           </div>
-        ) : (
-          <div className="mt-4 rounded-xl border border-signal/40 bg-signal/15 p-4 text-xs text-ink flex items-start gap-2.5">
-            <ShieldCheck size={20} className="text-signal-dark shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-bold text-ink text-sm">No Master Admin Initialized Yet</p>
-              <p className="text-[11px] text-ink-soft mt-1 leading-normal">
-                As the platform owner, you can claim the single Master Administrator account right now and set your own personal login email and password.
-              </p>
-              <Link
-                to="/register?role=admin"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-ink px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-ink/90 transition"
-              >
-                <ShieldCheck size={14} /> Claim Master Admin Ownership Now →
-              </Link>
-            </div>
-          </div>
-        )
+        </div>
       )}
 
       {/* Error Alert */}

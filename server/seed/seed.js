@@ -28,38 +28,18 @@ async function seed() {
   await connectDB()
   const destroyOnly = process.argv.includes('--destroy')
 
-  console.log('Clearing existing Collections...')
-  await Promise.all([User.deleteMany({}), Company.deleteMany({}), Job.deleteMany({}), Article.deleteMany({})])
+  console.log('Clearing existing Articles...')
+  await Article.deleteMany({})
 
   if (destroyOnly) {
     console.log('Destroy complete.')
     process.exit(0)
   }
 
-  console.log('Seeding system admin...')
-  await User.create({ name: 'Admin User', email: 'admin@careerhub.com', password: 'admin1234', role: 'admin' })
-
-  console.log('Seeding candidate student...')
-  await User.create({
-    name: 'Test Student',
-    email: 'student@careerhub.com',
-    password: 'password123',
-    role: 'student',
-    recruiterStatus: 'NONE',
-    about: 'Final-year Computer Science student interested in full-stack development.',
-    skills: ['React', 'Node.js', 'MongoDB'],
-  })
-  }
-
-  console.log('No dummy jobs seeded. Jobs will be posted manually by verified recruiters.')
-
   console.log('Seeding articles...')
   await Article.create(rawArticles.map((a) => ({ ...a, slug: slugify(a.title) })))
 
-  console.log('\nSeed complete.')
-  console.log('  Admin login:     admin@careerhub.com / admin1234')
-  console.log('  Recruiter login: recruiter1@careerhub.com / password123')
-  console.log('  Student login:   student@careerhub.com / password123')
+  console.log('\nSeed complete. Educational resources initialized.')
   process.exit(0)
 }
 
