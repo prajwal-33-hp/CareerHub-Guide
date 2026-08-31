@@ -108,6 +108,93 @@ const DISPOSABLE_DOMAINS = new Set([
 ])
 
 /**
+ * Check if email exists via external Verification API (Abstract API / Hunter / ZeroBounce / Debounce)
+ * @param {string} email
+ * @returns {Promise<{ checked: boolean, valid?: boolean, error?: string }>}
+ */
+async function checkExternalVerificationApi(email) {
+  // 1. Abstract API (Popular, instant SMTP existence check)
+  if (process.env.ABSTRACT_EMAIL_API_KEY) {
+    try {
+      const url = `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_EMAIL_API_KEY}&email=${encodeURIComponent(email)}`
+      const res = await fetch(url, { signal: AbortSignal.timeout(3500) })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.deliverability === 'UNDELIVERABLE' || data.is_valid_format?.value === false) {
+          return {
+            checked: true,
+            valid: false,
+            error: 'This email address does not exist in real life. Please check for typos or use an active email account.',
+          }
+        }
+        if (data.is_disposable_email?.value === true) {
+          return {
+            checked: true,
+            valid: false,
+            error: 'Disposable and temporary email addresses are strictly prohibited.',
+          }
+        }
+        return { checked: true, valid: true }
+      }
+    } catch (err) {
+      console.warn('[EmailValidator] Abstract API check warning:', err.message)
+    }
+  }
+
+  // 2. Hunter.io API
+  if (process.env.HUNTER_API_KEY) {
+    try {
+      const url = `https://api.hunter.io/v2/email-verifier?email=${encodeURIComponent(email)}&api_key=${process.env.HUNTER_API_KEY}`
+      const res = await fetch(url, { signal: AbortSignal.timeout(3500) })
+      if (res.ok) {
+        const data = await res.json()
+        const result = data?.data?.result
+        if (result === 'undeliverable') {
+          return {
+            checked: true,
+            valid: false,
+            error: 'This email address does not exist in real life. Please check for typos or use an active email account.',
+          }
+        }
+        if (data?.data?.disposable) {
+          return {
+            checked: true,
+            valid: false,
+            error: 'Disposable and temporary email addresses are strictly prohibited.',
+          }
+        }
+        return { checked: true, valid: true }
+      }
+    } catch (err) {
+      console.warn('[EmailValidator] Hunter API check warning:', err.message)
+    }
+  }
+
+  // 3. ZeroBounce API
+  if (process.env.ZEROBOUNCE_API_KEY) {
+    try {
+      const url = `https://api.zerobounce.net/v2/validate?api_key=${process.env.ZEROBOUNCE_API_KEY}&email=${encodeURIComponent(email)}`
+      const res = await fetch(url, { signal: AbortSignal.timeout(3500) })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.status === 'invalid') {
+          return {
+            checked: true,
+            valid: false,
+            error: 'This email address does not exist in real life. Please check for typos or use an active email account.',
+          }
+        }
+        return { checked: true, valid: true }
+      }
+    } catch (err) {
+      console.warn('[EmailValidator] ZeroBounce API check warning:', err.message)
+    }
+  }
+
+  return { checked: false }
+}
+
+/**
  * Validates whether an email is a genuine, active, deliverable real-world email address.
  * @param {string} email
  * @returns {Promise<{ valid: boolean, error?: string, normalizedEmail: string, domain: string }>}
@@ -183,7 +270,13 @@ async function validateRealEmail(email) {
     return { valid: false, error: 'Test and placeholder email domains do not exist in real life.' }
   }
 
-  // 6. Live DNS MX (Mail Exchange) verification: verifies that the domain has active mail servers in real life
+  // 6. External Verification API Check (Abstract API / Hunter.io / ZeroBounce)
+  const apiCheck = await checkExternalVerificationApi(normalized)
+  if (apiCheck.checked && !apiCheck.valid) {
+    return { valid: false, error: apiCheck.error }
+  }
+
+  // 7. Live DNS MX (Mail Exchange) verification: verifies that the domain has active mail servers in real life
   try {
     const mxRecords = await Promise.race([
       dns.resolveMx(domain),
@@ -211,6 +304,7 @@ async function validateRealEmail(email) {
 
 module.exports = {
   validateRealEmail,
+  checkExternalVerificationApi,
   DISPOSABLE_DOMAINS,
   COMMON_TYPO_DOMAINS,
   DUMMY_LOCAL_PARTS,
