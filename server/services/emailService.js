@@ -15,12 +15,15 @@ async function getTransporter() {
       process.env.SMTP_HOST?.includes('gmail') ||
       process.env.SMTP_USER?.includes('@gmail.com')
 
+    const cleanUser = process.env.SMTP_USER.trim()
+    const cleanPass = process.env.SMTP_PASS.replace(/\s+/g, '')
+
     const transportOptions = isGmail
       ? {
           service: 'gmail',
           auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS, // 16-character Google App Password
+            user: cleanUser,
+            pass: cleanPass, // 16-character Google App Password (stripped of spaces)
           },
         }
       : {
@@ -28,13 +31,13 @@ async function getTransporter() {
           port: parseInt(process.env.SMTP_PORT || '587', 10),
           secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
           auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
+            user: cleanUser,
+            pass: cleanPass,
           },
         }
 
     cachedTransporter = nodemailer.createTransport(transportOptions)
-    console.log(`[EmailService] Configured real SMTP delivery via ${process.env.SMTP_USER}`)
+    console.log(`[EmailService] Configured real SMTP delivery via ${cleanUser}`)
     return cachedTransporter
   }
 
@@ -243,9 +246,57 @@ async function sendApplicationApprovedEmail(toEmail, recipientName, companyName)
   return await sendEmail({ to: toEmail, subject, html })
 }
 
+/**
+ * Send 6-Digit Password Reset OTP Email
+ */
+async function sendPasswordResetEmail(toEmail, resetCode, recipientName = 'User') {
+  const subject = `Your CareerHub Password Reset Code: ${resetCode}`
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #0f172a; }
+          .card { max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+          .badge { display: inline-block; background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 16px; }
+          .code-box { background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
+          .code { font-family: monospace; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0f172a; }
+          .footer { font-size: 11px; color: #64748b; margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 16px; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="badge">Security & Password Recovery</div>
+          <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px;">Reset Your Password</h2>
+          <p style="font-size: 14px; color: #475569; line-height: 1.6; margin: 0 0 16px 0;">
+            Hello <strong>${recipientName}</strong>,<br/>
+            We received a request to reset the password for your CareerHub account. Enter the following 6-digit verification code to choose a new password:
+          </p>
+
+          <div class="code-box">
+            <div class="code">${resetCode}</div>
+            <p style="font-size: 11px; color: #64748b; margin: 8px 0 0 0;">Valid for 15 minutes. Do not share this code with anyone.</p>
+          </div>
+
+          <p style="font-size: 13px; color: #64748b; line-height: 1.5;">
+            If you did not request a password reset, you can safely ignore this email. Your current password will remain unchanged.
+          </p>
+
+          <div class="footer">
+            © ${new Date().getFullYear()} CareerHub • Account Security Team
+          </div>
+        </div>
+      </body>
+    </html>
+  `
+  return await sendEmail({ to: toEmail, subject, html })
+}
+
 module.exports = {
   sendEmail,
   sendOtpEmail,
   sendInviteEmail,
   sendApplicationApprovedEmail,
+  sendPasswordResetEmail,
 }
