@@ -78,8 +78,6 @@ export default function RecruiterOnboarding() {
   const [phoneVerifying, setPhoneVerifying] = useState(false)
   const [emailVerified, setEmailVerified] = useState(false)
   const [phoneVerified, setPhoneVerified] = useState(false)
-  const [testEmailCode, setTestEmailCode] = useState('')
-  const [testPhoneCode, setTestPhoneCode] = useState('')
 
   // Uploading state
   const [uploadingDoc, setUploadingDoc] = useState(false)
@@ -194,7 +192,6 @@ export default function RecruiterOnboarding() {
       })
       setEmailOtpSent(true)
       setEmailTimer(45)
-      if (data.testOtp) setTestEmailCode(data.testOtp)
       showToast(data.message || 'Verification code sent to work email', 'info')
     } catch (err) {
       showToast(err.message || 'Failed to send email verification code', 'error')
@@ -237,7 +234,6 @@ export default function RecruiterOnboarding() {
       })
       setPhoneOtpSent(true)
       setPhoneTimer(45)
-      if (data.testOtp) setTestPhoneCode(data.testOtp)
       showToast(data.message || 'SMS verification code sent to phone', 'info')
     } catch (err) {
       showToast(err.message || 'Failed to send phone verification code', 'error')
@@ -908,19 +904,6 @@ export default function RecruiterOnboarding() {
                     </button>
                   </div>
 
-                  {testEmailCode && (
-                    <div className="rounded-lg border border-signal/30 bg-signal/15 p-2 text-[11px] text-ink flex items-center justify-between">
-                      <span>Test Code: <strong className="font-mono font-bold">{testEmailCode}</strong></span>
-                      <button
-                        type="button"
-                        onClick={() => setEmailOtp(testEmailCode)}
-                        className="text-[10px] font-bold text-signal-dark hover:underline"
-                      >
-                        Auto-fill
-                      </button>
-                    </div>
-                  )}
-
                   {emailOtpSent && (
                     <div className="flex gap-2">
                       <input
@@ -983,19 +966,6 @@ export default function RecruiterOnboarding() {
                             : 'Send Code'}
                     </button>
                   </div>
-
-                  {testPhoneCode && (
-                    <div className="rounded-lg border border-signal/30 bg-signal/15 p-2 text-[11px] text-ink flex items-center justify-between">
-                      <span>Test Code: <strong className="font-mono font-bold">{testPhoneCode}</strong></span>
-                      <button
-                        type="button"
-                        onClick={() => setPhoneOtp(testPhoneCode)}
-                        className="text-[10px] font-bold text-signal-dark hover:underline"
-                      >
-                        Auto-fill
-                      </button>
-                    </div>
-                  )}
 
                   {phoneOtpSent && (
                     <div className="flex gap-2">

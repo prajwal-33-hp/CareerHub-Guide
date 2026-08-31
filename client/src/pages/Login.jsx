@@ -407,25 +407,6 @@ export default function Login() {
               </div>
             )}
 
-            {/* Instant Dev / Testing OTP Auto-Fill Badge */}
-            {testResetCode && (
-              <div className="flex items-center justify-between rounded-xl bg-signal/15 border border-signal/30 p-2.5 text-xs text-ink">
-                <div className="flex items-center gap-1.5 font-medium">
-                  <span>⚡ Instant Code:</span>
-                  <span className="font-mono font-bold tracking-wider text-sm bg-white px-2 py-0.5 rounded border border-signal/40">
-                    {testResetCode}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setForgotOtp(testResetCode)}
-                  className="btn-primary py-1 px-2.5 text-[11px] font-bold"
-                >
-                  Auto-fill ⚡
-                </button>
-              </div>
-            )}
-
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-semibold text-ink">

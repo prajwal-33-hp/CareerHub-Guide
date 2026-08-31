@@ -260,16 +260,17 @@ const forgotPassword = asyncHandler(async (req, res) => {
   user.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
   await user.save()
 
-  // Dispatch real email via SMTP / Ethereal
-  sendPasswordResetEmail(user.email, resetCode, user.name || 'User').catch((err) =>
+  // Dispatch real email via SMTP
+  try {
+    await sendPasswordResetEmail(user.email, resetCode, user.name || 'User')
+  } catch (err) {
     console.error('[EmailService] Failed to send password reset email:', err.message)
-  )
+  }
 
   res.json({
     success: true,
     message: `A 6-digit verification code has been sent to ${user.email}. Please check your inbox.`,
     email: user.email,
-    resetCode,
   })
 })
 
