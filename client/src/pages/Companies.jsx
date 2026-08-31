@@ -40,7 +40,7 @@ export default function Companies() {
             <div key={index} className="h-28 rounded-3xl border border-ink/10 bg-white p-5" />
           ))}
         </div>
-      ) : (
+      ) : companies.length > 0 ? (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {companies.map((company) => (
             <Link key={company._id || company.id} to={`/companies/${company.slug}`} className="rounded-lg border border-ink/10 bg-white p-5 transition-colors hover:border-signal">
@@ -53,11 +53,26 @@ export default function Companies() {
               </div>
               <p className="mt-3 text-sm text-ink-soft line-clamp-2">{company.description}</p>
               <div className="mt-3 flex items-center gap-4 text-xs text-ink-soft">
-                <span className="flex items-center gap-1"><MapPin size={13} />{company.location}</span>
-                <span className="flex items-center gap-1"><Users size={13} />{company.employees || '1-10'}</span>
+                <span className="flex items-center gap-1"><MapPin size={13} />{company.city || company.location || 'India'}</span>
+                <span className="flex items-center gap-1"><Users size={13} />{company.companySize || company.employees || '1-10'}</span>
               </div>
             </Link>
           ))}
+        </div>
+      ) : (
+        <div className="mt-8 rounded-3xl border border-dashed border-ink/15 bg-white p-12 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-signal/15 text-signal-dark mb-4">
+            <Users size={28} />
+          </div>
+          <h2 className="font-display text-lg font-bold text-ink">No Verified Companies Yet</h2>
+          <p className="mx-auto mt-2 max-w-md text-xs text-ink-soft leading-relaxed">
+            All company profiles and hiring dashboards on CareerHub are manually verified and created by approved company recruiters.
+          </p>
+          <div className="mt-6">
+            <Link to="/recruiter/signup" className="btn-primary py-2.5 px-5 text-xs font-bold inline-flex">
+              Sign Up as Recruiter / Register Company →
+            </Link>
+          </div>
         </div>
       )}
     </div>
