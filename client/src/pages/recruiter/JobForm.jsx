@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Trash2, Sparkles, Wand2 } from 'lucide-react'
+import { Plus, Trash2, Sparkles, Wand2, Building2, ShieldCheck, AlertCircle } from 'lucide-react'
 import { useToast } from '../../context/ToastContext.jsx'
 import api from '../../services/api.js'
 
@@ -14,8 +14,10 @@ export default function JobForm() {
   const [error, setError] = useState('')
   const [generatingAi, setGeneratingAi] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
+  const [company, setCompany] = useState(null)
+  const [companyLoading, setCompanyLoading] = useState(true)
 
-  const { register, control, handleSubmit, reset, setValue } = useForm({
+  const { register, control, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: {
       title: '',
       location: '',
@@ -32,8 +34,22 @@ export default function JobForm() {
     },
   })
 
+  const selectedJobType = watch('jobType')
   const resp = useFieldArray({ control, name: 'responsibilities' })
   const reqs = useFieldArray({ control, name: 'requirements' })
+
+  // Fetch recruiter's company profile
+  useEffect(() => {
+    api
+      .get('/companies/me')
+      .then(({ data }) => {
+        setCompany(data.company)
+      })
+      .catch((err) => {
+        console.warn('Could not load company info:', err.message)
+      })
+      .finally(() => setCompanyLoading(false))
+  }, [])
 
   useEffect(() => {
     if (!isEdit) return
@@ -194,24 +210,57 @@ export default function JobForm() {
         </div>
       )}
 
+      {/* Verified Company Identifier Banner */}
+      <div className="rounded-2xl border border-signal/30 bg-paper/60 p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-signal text-ink font-bold shadow-xs">
+            <Building2 size={20} />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-display text-sm font-bold text-ink">{company?.name || 'Your Verified Company'}</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                <ShieldCheck size={12} /> Verified
+              </span>
+            </div>
+            <p className="text-xs text-ink-soft">
+              {company?.domain ? `${company.domain} • ` : ''}
+              {company?.industry || 'Technology'} • {company?.location || 'Official Recruiter Listing'}
+            </p>
+          </div>
+        </div>
+        <div className="text-[11px] text-ink-soft bg-white px-3 py-1.5 rounded-lg border border-ink/10">
+          Posting strictly verified under <strong>{company?.name || 'Company Profile'}</strong>
+        </div>
+      </div>
+
       {error && <div className="mb-4 rounded-md border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</div>}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 rounded-xl border border-ink/10 bg-white p-6 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">Job Title *</label>
-            <input {...register('title', { required: true })} placeholder="e.g. Senior Frontend Engineer" className="input-field" />
+            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">
+              {selectedJobType === 'Internship' ? 'Internship Title *' : 'Job Title *'}
+            </label>
+            <input
+              {...register('title', { required: true })}
+              placeholder={selectedJobType === 'Internship' ? 'e.g. Software Engineering Intern' : 'e.g. Senior Frontend Engineer'}
+              className="input-field"
+            />
           </div>
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">Location *</label>
-            <input {...register('location', { required: true })} placeholder="e.g. Bengaluru, Remote, San Francisco" className="input-field" />
+            <input {...register('location', { required: true })} placeholder="e.g. Bengaluru, Remote, Mumbai" className="input-field" />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">Job Type</label>
-            <select {...register('jobType')} className="input-field">
-              {['Full Time', 'Part Time', 'Internship', 'Contract'].map((t) => <option key={t}>{t}</option>)}
+            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">Listing Type *</label>
+            <select {...register('jobType')} className="input-field font-medium">
+              <option value="Full Time">Full Time Job</option>
+              <option value="Internship">Student Internship</option>
+              <option value="Part Time">Part Time</option>
+              <option value="Contract">Contract</option>
             </select>
           </div>
 
@@ -223,13 +272,25 @@ export default function JobForm() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">Experience Level</label>
-            <input {...register('experience')} placeholder="e.g. 2-4 yrs" className="input-field" />
+            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">
+              {selectedJobType === 'Internship' ? 'Target Batch / Experience' : 'Experience Level'}
+            </label>
+            <input
+              {...register('experience')}
+              placeholder={selectedJobType === 'Internship' ? 'e.g. 2025/2026 Batch or Freshers' : 'e.g. 2-4 yrs'}
+              className="input-field"
+            />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">Salary Range</label>
-            <input {...register('salary')} placeholder="e.g. ₹12L - ₹20L / year or $95,000 - $130,000" className="input-field" />
+            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">
+              {selectedJobType === 'Internship' ? 'Monthly Stipend / Compensation' : 'Salary Range'}
+            </label>
+            <input
+              {...register('salary')}
+              placeholder={selectedJobType === 'Internship' ? 'e.g. ₹25,000 - ₹40,000 / month' : 'e.g. ₹12L - ₹20L / year'}
+              className="input-field"
+            />
           </div>
 
           <div>
