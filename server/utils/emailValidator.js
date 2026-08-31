@@ -23,6 +23,33 @@ const COMMON_TYPO_DOMAINS = {
   'iclod.com': 'icloud.com',
 }
 
+// Common placeholder / dummy local parts that do not represent genuine users
+const DUMMY_LOCAL_PARTS = new Set([
+  'test',
+  'testing',
+  'testuser',
+  'fake',
+  'fakeuser',
+  'fakeemail',
+  'dummy',
+  'dummyuser',
+  'temp',
+  'tempuser',
+  'asdf',
+  'asdfgh',
+  'asdfghjk',
+  'qwerty',
+  'qwertyuiop',
+  'zxcvbnm',
+  '123456',
+  'nobody',
+  'null',
+  'undefined',
+  'invalid',
+  'sample',
+  'example',
+])
+
 // Comprehensive list of known disposable, temporary, and fake email providers
 const DISPOSABLE_DOMAINS = new Set([
   'mailinator.com',
@@ -138,6 +165,13 @@ async function validateRealEmail(email) {
     return { valid: false, error: 'Email username contains invalid punctuation.' }
   }
 
+  if (DUMMY_LOCAL_PARTS.has(localPart.toLowerCase())) {
+    return {
+      valid: false,
+      error: `"${localPart}" appears to be a placeholder or test email prefix. Please use a real active email account.`,
+    }
+  }
+
   if (!domain || domain.length > 255 || !domain.includes('.')) {
     return { valid: false, error: 'Email domain is invalid.' }
   }
@@ -208,4 +242,5 @@ module.exports = {
   DISPOSABLE_DOMAINS,
   TRUSTED_DOMAINS,
   COMMON_TYPO_DOMAINS,
+  DUMMY_LOCAL_PARTS,
 }
