@@ -1,6 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler')
 const slugify = require('../utils/slugify')
 const Company = require('../models/Company')
+const CompanyMember = require('../models/CompanyMember')
 
 // @route   GET /api/companies
 // @access  Public
@@ -27,11 +28,31 @@ const getCompanyByIdOrSlug = asyncHandler(async (req, res) => {
 // @route   GET /api/companies/me
 // @access  Private (recruiter)
 const getMyCompany = asyncHandler(async (req, res) => {
-  const company = await Company.findOne({ owner: req.user._id })
+  let company = null
+
+  // 1. Direct link on user
+  if (req.user.company) {
+    company = await Company.findById(req.user.company)
+  }
+
+  // 2. Lookup via CompanyMember
+  if (!company) {
+    const membership = await CompanyMember.findOne({ user: req.user._id, status: 'active' }).populate('company')
+    if (membership?.company) {
+      company = membership.company
+    }
+  }
+
+  // 3. Fallback to owner field
+  if (!company) {
+    company = await Company.findOne({ owner: req.user._id })
+  }
+
   if (!company) {
     res.status(404)
     throw new Error('Company profile not found')
   }
+
   res.json({ company })
 })
 
@@ -51,25 +72,71 @@ const createCompany = asyncHandler(async (req, res) => {
     slug = `${baseSlug}-${suffix++}`
   }
 
-  const company = await Company.create({ ...req.body, slug, owner: req.user._id })
+  const company = await Company.create({
+    ...req.body,
+    slug,
+    owner: req.user._id,
+    verified: req.user.role === 'admin',
+    status: req.user.role === 'admin' ? 'verified' : 'pending',
+  })
+
+  // Create CompanyMember record as OWNER
+  await CompanyMember.findOneAndUpdate(
+    { company: company._id, user: req.user._id },
+    {
+      company: company._id,
+      user: req.user._id,
+      companyRole: 'OWNER',
+      designation: req.user.designation || 'Company Founder',
+      department: req.user.department || 'Executive',
+      workEmail: req.user.email,
+      status: 'active',
+      joinedAt: new Date(),
+    },
+    { upsert: true, new: true }
+  )
+
+  await req.user.updateOne({ company: company._id, companyRole: 'OWNER' })
+
   res.status(201).json({ company })
 })
 
 // @route   PUT /api/companies/:id
-// @access  Private (owner or admin)
+// @access  Private (owner, admin, or company admin)
 const updateCompany = asyncHandler(async (req, res) => {
   const company = await Company.findById(req.params.id)
   if (!company) {
     res.status(404)
     throw new Error('Company not found')
   }
-  if (req.user.role !== 'admin' && String(company.owner) !== String(req.user._id)) {
+
+  // Check if caller is admin or an authorized company member
+  const membership = await CompanyMember.findOne({
+    company: company._id,
+    user: req.user._id,
+    status: 'active',
+  })
+
+  const isOwner = String(company.owner) === String(req.user._id)
+  const isCompanyAdmin = membership && ['OWNER', 'ADMIN'].includes(membership.companyRole)
+  const isSystemAdmin = req.user.role === 'admin'
+
+  if (!isOwner && !isCompanyAdmin && !isSystemAdmin) {
     res.status(403)
-    throw new Error('You do not have permission to edit this company')
+    throw new Error('You do not have permission to edit this company profile')
   }
 
-  Object.assign(company, req.body)
+  // Prevent modifying critical verification fields from client directly
+  const { verified, verifiedAt, verifiedBy, status, ...allowedUpdates } = req.body
+
+  if (isSystemAdmin) {
+    if (verified !== undefined) allowedUpdates.verified = verified
+    if (status !== undefined) allowedUpdates.status = status
+  }
+
+  Object.assign(company, allowedUpdates)
   await company.save()
+
   res.json({ company })
 })
 
@@ -82,6 +149,7 @@ const deleteCompany = asyncHandler(async (req, res) => {
     throw new Error('Company not found')
   }
   await company.deleteOne()
+  await CompanyMember.deleteMany({ company: company._id })
   res.json({ message: 'Company removed' })
 })
 

@@ -115,6 +115,37 @@ export default function Overview() {
         ))}
       </div>
 
+      {/* Recruiter Access Quick Card */}
+      <div className="rounded-2xl border border-signal/30 bg-gradient-to-r from-signal/15 via-signal/10 to-paper p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-signal text-ink font-bold">
+            💼
+          </div>
+          <div>
+            <p className="font-display text-sm font-bold text-ink">
+              {user?.recruiterStatus === 'REQUESTED' || user?.recruiterStatus === 'UNDER_REVIEW'
+                ? 'Recruiter Application Under Review'
+                : user?.recruiterStatus === 'REJECTED'
+                  ? 'Recruiter Application Needs Update'
+                  : 'Looking to hire developers & interns?'}
+            </p>
+            <p className="text-xs text-ink-soft">
+              {user?.recruiterStatus === 'REQUESTED' || user?.recruiterStatus === 'UNDER_REVIEW'
+                ? 'Your company verification is queued for review by the admin team.'
+                : user?.recruiterStatus === 'REJECTED'
+                  ? 'View reviewer notes and update your company details.'
+                  : 'Apply for verified Recruiter Access to post jobs, search candidates, and conduct interviews.'}
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/recruiter/onboarding"
+          className="btn-primary text-xs shrink-0 self-start sm:self-auto"
+        >
+          {user?.recruiterStatus && user.recruiterStatus !== 'NONE' ? 'View Status' : 'Request Recruiter Access'}
+        </Link>
+      </div>
+
       {/* Upcoming Scheduled Interviews Agenda */}
       {upcomingInterviews.length > 0 && (
         <div className="space-y-3">

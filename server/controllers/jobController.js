@@ -156,12 +156,29 @@ const getJobByIdOrSlug = asyncHandler(async (req, res) => {
 })
 
 // @route   POST /api/jobs
-// @access  Private (recruiter)
+// @access  Private (approved recruiter)
 const createJob = asyncHandler(async (req, res) => {
-  const company = await Company.findOne({ owner: req.user._id })
+  let company = null
+
+  if (req.user.company) {
+    company = await Company.findById(req.user.company)
+  }
+
+  if (!company) {
+    const CompanyMember = require('../models/CompanyMember')
+    const membership = await CompanyMember.findOne({ user: req.user._id, status: 'active' }).populate('company')
+    if (membership?.company) {
+      company = membership.company
+    }
+  }
+
+  if (!company) {
+    company = await Company.findOne({ owner: req.user._id })
+  }
+
   if (!company) {
     res.status(400)
-    throw new Error('Create your company profile before posting a job')
+    throw new Error('You must be linked to a verified company before posting a job')
   }
 
   const baseSlug = slugify(`${req.body.title}-${req.body.location}`)

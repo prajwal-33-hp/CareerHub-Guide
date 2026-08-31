@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 const navItems = [
   { to: '/recruiter/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/recruiter/dashboard/company', label: 'Company Profile', icon: Building2 },
+  { to: '/recruiter/dashboard/team', label: 'Team & Recruiters', icon: Users },
   { to: '/recruiter/dashboard/jobs/new', label: 'Post a Job', icon: PlusCircle },
   { to: '/recruiter/dashboard/jobs', label: 'My Jobs', icon: Briefcase },
   { to: '/recruiter/dashboard/applicants', label: 'Applicants', icon: Users },

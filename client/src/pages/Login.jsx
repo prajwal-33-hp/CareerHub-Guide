@@ -179,9 +179,19 @@ export default function Login() {
 
       {/* Error Alert */}
       {serverError && (
-        <div className="mt-4 rounded-xl border border-danger/20 bg-danger/10 p-3 text-xs text-danger flex items-start gap-2">
-          <span className="mt-0.5 font-bold">⚠️</span>
-          <span>{serverError}</span>
+        <div className="mt-4 rounded-xl border border-danger/20 bg-danger/10 p-3 text-xs text-danger flex flex-col gap-1.5">
+          <div className="flex items-start gap-2">
+            <span className="mt-0.5 font-bold">⚠️</span>
+            <span>{serverError}</span>
+          </div>
+          {serverError.toLowerCase().includes('recruiter') && (
+            <Link
+              to="/recruiter/onboarding"
+              className="mt-1 inline-flex items-center text-[11px] font-bold text-signal-dark hover:underline"
+            >
+              Go to Recruiter Verification Portal →
+            </Link>
+          )}
         </div>
       )}
 

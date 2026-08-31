@@ -84,6 +84,16 @@ export default function Navbar() {
                 )}
               </Link>
 
+              {/* Recruiter onboarding shortcut for candidates */}
+              {user.role !== 'recruiter' && user.role !== 'admin' && (
+                <Link
+                  to="/recruiter/onboarding"
+                  className="rounded-md px-2.5 py-1.5 text-xs font-semibold text-signal-dark bg-signal/15 hover:bg-signal/25 transition"
+                >
+                  Hire Talent
+                </Link>
+              )}
+
               {/* Dashboard Link */}
               <Link to={dashboardPath} className="btn-ghost">
                 Dashboard
@@ -94,6 +104,12 @@ export default function Navbar() {
             </>
           ) : (
             <>
+              <Link
+                to="/recruiter/onboarding"
+                className="rounded-md px-2.5 py-1.5 text-xs font-semibold text-signal-dark bg-signal/15 hover:bg-signal/25 transition"
+              >
+                Hire Talent
+              </Link>
               <Link to="/login" className="btn-ghost">
                 Log in
               </Link>
@@ -126,6 +142,13 @@ export default function Navbar() {
                 {l.label}
               </NavLink>
             ))}
+            <Link
+              to="/recruiter/onboarding"
+              onClick={() => setOpen(false)}
+              className="rounded-md px-3 py-2 text-sm font-semibold text-signal-dark hover:bg-signal/15"
+            >
+              💼 Hire Talent / Recruiter Onboarding
+            </Link>
             <div className="mt-2 flex gap-2 border-t border-ink/10 pt-3">
               {user ? (
                 <>

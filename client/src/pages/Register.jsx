@@ -91,33 +91,23 @@ export default function Register() {
         </p>
       </div>
 
-      {/* Role Selector Cards */}
-      <div className="mt-6 grid grid-cols-2 gap-2.5">
-        {[
-          { id: 'student', label: 'Candidate', icon: User, desc: 'Find Jobs' },
-          { id: 'recruiter', label: 'Recruiter', icon: Briefcase, desc: 'Hire Talent' },
-        ].map(({ id, label, icon: Icon, desc }) => {
-          const isSelected = selectedRole === id
-          return (
-            <label
-              key={id}
-              className={`flex cursor-pointer flex-col items-center rounded-xl border p-3 text-center transition ${isSelected
-                  ? 'border-signal bg-signal/15 text-ink shadow-2xs'
-                  : 'border-ink/10 bg-white text-ink-soft hover:border-ink/20'
-                }`}
-            >
-              <input type="radio" value={id} {...register('role')} className="hidden" />
-              <div
-                className={`flex h-8 w-8 items-center justify-center rounded-lg mb-1.5 ${isSelected ? 'bg-signal text-ink' : 'bg-paper text-ink-soft'
-                  }`}
-              >
-                <Icon size={16} />
-              </div>
-              <span className="font-display text-xs font-bold">{label}</span>
-              <span className="text-[10px] text-ink-soft">{desc}</span>
-            </label>
-          )
-        })}
+      {/* Recruiter Onboarding Notice */}
+      <div className="mt-6 rounded-2xl border border-signal/30 bg-signal/10 p-3.5 text-xs text-ink shadow-2xs">
+        <div className="flex items-start gap-2.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-signal text-ink">
+            <Briefcase size={15} />
+          </div>
+          <div>
+            <p className="font-semibold text-ink">Looking to hire talent?</p>
+            <p className="mt-0.5 text-[11px] text-ink-soft leading-relaxed">
+              Create your account below, then request{' '}
+              <Link to="/recruiter/onboarding" className="font-bold text-signal-dark hover:underline">
+                Verified Recruiter Access
+              </Link>{' '}
+              with company registration details.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Error Alert */}

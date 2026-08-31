@@ -79,16 +79,14 @@ const scheduleInterview = asyncHandler(async (req, res) => {
     throw new Error('Application not found')
   }
 
-  // Authorization check - allow job poster, recruiters, or admin
-  const isPoster =
-    application.job?.postedBy &&
-    String(application.job.postedBy) === String(req.user._id)
-  const isRecruiterOrAdmin =
-    req.user.role === 'recruiter' || req.user.role === 'admin'
+  // Authorization check - only approved recruiters or admin
+  const isApprovedRecruiter =
+    req.user.role === 'recruiter' && req.user.recruiterStatus === 'APPROVED'
+  const isAdmin = req.user.role === 'admin'
 
-  if (!isPoster && !isRecruiterOrAdmin) {
+  if (!isApprovedRecruiter && !isAdmin) {
     res.status(403)
-    throw new Error('You do not have permission to schedule interviews for this applicant')
+    throw new Error('Only approved recruiters or administrators can schedule interviews')
   }
 
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174'

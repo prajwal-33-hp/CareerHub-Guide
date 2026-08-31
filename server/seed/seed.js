@@ -52,6 +52,12 @@ async function seed() {
       email: `recruiter${i + 1}@careerhub.com`,
       password: 'password123',
       role: 'recruiter',
+      recruiterStatus: 'APPROVED',
+      companyRole: 'OWNER',
+      designation: 'Head of Talent Acquisition',
+      department: 'Human Resources',
+      isEmailVerified: true,
+      isPhoneVerified: true,
     }))
   )
 
@@ -61,6 +67,7 @@ async function seed() {
     email: 'student@careerhub.com',
     password: 'password123',
     role: 'student',
+    recruiterStatus: 'NONE',
     about: 'Final-year Computer Science student interested in full-stack development.',
     skills: ['React', 'Node.js', 'MongoDB'],
   })
@@ -72,8 +79,36 @@ async function seed() {
       slug: slugify(c.name),
       owner: recruiterUsers[i]._id,
       verified: true,
+      status: 'verified',
+      companyType: 'Private Limited',
+      country: 'India',
+      state: 'Karnataka',
+      city: c.location === 'Remote' ? 'Bengaluru' : c.location,
+      address: `100 Tech Boulevard, ${c.location}`,
+      cin: `U72900KA2020PTC00000${i + 1}`,
+      gstin: `29AAAAA0000A1Z${i + 1}`,
+      domain: `${slugify(c.name)}.com`,
     }))
   )
+
+  const CompanyMember = require('../models/CompanyMember')
+  await CompanyMember.deleteMany({})
+  await CompanyMember.create(
+    companies.map((comp, idx) => ({
+      company: comp._id,
+      user: recruiterUsers[idx]._id,
+      companyRole: 'OWNER',
+      designation: 'Head of Talent Acquisition',
+      department: 'Human Resources',
+      workEmail: recruiterUsers[idx].email,
+      status: 'active',
+    }))
+  )
+
+  // Link company back to recruiter user
+  for (let i = 0; i < recruiterUsers.length; i++) {
+    await User.findByIdAndUpdate(recruiterUsers[i]._id, { company: companies[i]._id })
+  }
 
   console.log('Seeding jobs...')
   const jobDefs = [

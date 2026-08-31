@@ -113,17 +113,15 @@ const googleCallback = asyncHandler(async (req, res) => {
         await user.save()
       }
     } else {
-      // Create new user with requested role
-      const targetRole = ['student', 'recruiter'].includes(stateData.role)
-        ? stateData.role
-        : 'student'
-
+      // All new Google signups are created as standard candidate users.
+      // Recruiter access requires formal application and admin verification.
       user = await User.create({
         name: googleProfile.name,
         email: googleProfile.email,
         googleId: googleProfile.googleId,
         authProvider: 'google',
-        role: targetRole,
+        role: 'student',
+        recruiterStatus: 'NONE',
         photoUrl: googleProfile.picture || '',
       })
     }
@@ -150,7 +148,7 @@ const googleCallback = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/register
 // @access  Public
 const register = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body
+  const { name, email, password } = req.body
 
   if (!name || !email || !password) {
     res.status(400)
@@ -163,12 +161,16 @@ const register = asyncHandler(async (req, res) => {
     throw new Error('An account with this email already exists')
   }
 
-  // Never trust a role of "admin" from the request body -- only student/recruiter
-  // are self-servable; admin accounts should be created directly in the database
-  // or via a separate seeded/admin-only flow.
-  const safeRole = ['student', 'recruiter'].includes(role) ? role : 'student'
-
-  const user = await User.create({ name, email, password, role: safeRole })
+  // Under the verification system, all new accounts are registered as standard
+  // candidate accounts ('student'). Users who wish to recruit must submit an
+  // application and be approved by the admin team.
+  const user = await User.create({
+    name,
+    email,
+    password,
+    role: 'student',
+    recruiterStatus: 'NONE',
+  })
 
   res.status(201).json({
     token: generateToken(user._id, user.role),
@@ -194,14 +196,32 @@ const login = asyncHandler(async (req, res) => {
     throw new Error('Invalid email or password')
   }
 
-  if (role && user.role !== role) {
-    res.status(403)
-    throw new Error(`Please log in with the ${user.role} option.`)
-  }
-
   if (user.status === 'suspended') {
     res.status(403)
     throw new Error('This account has been suspended')
+  }
+
+  // Check role match and verification status
+  if (role === 'recruiter' && user.role !== 'recruiter' && user.role !== 'admin') {
+    if (user.recruiterStatus === 'REQUESTED' || user.recruiterStatus === 'UNDER_REVIEW') {
+      res.status(403)
+      throw new Error(
+        'Your recruiter application is currently under review by our admin team. Please check back soon.'
+      )
+    } else if (user.recruiterStatus === 'REJECTED') {
+      res.status(403)
+      throw new Error(
+        'Your recruiter application was not approved. Please log in as candidate to view details and reapply.'
+      )
+    } else {
+      res.status(403)
+      throw new Error(
+        'You do not have approved recruiter access. Please log in as candidate and request recruiter onboarding.'
+      )
+    }
+  } else if (role && user.role !== role && user.role !== 'admin') {
+    res.status(403)
+    throw new Error(`Please log in with the ${user.role} option.`)
   }
 
   res.json({

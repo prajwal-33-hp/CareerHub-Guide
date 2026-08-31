@@ -43,6 +43,9 @@ const MyJobs = lazy(() => import('../pages/recruiter/MyJobs.jsx'))
 const Applicants = lazy(() => import('../pages/recruiter/Applicants.jsx'))
 const ApplicantDetails = lazy(() => import('../pages/recruiter/ApplicantDetails.jsx'))
 const RecruiterMessages = lazy(() => import('../pages/recruiter/Messages.jsx'))
+const RecruiterOnboarding = lazy(() => import('../pages/recruiter/RecruiterOnboarding.jsx'))
+const TeamManagement = lazy(() => import('../pages/recruiter/TeamManagement.jsx'))
+const AcceptInvite = lazy(() => import('../pages/auth/AcceptInvite.jsx'))
 
 const AdminDashboard = lazy(() => import('../pages/admin/Dashboard.jsx'))
 const AdminOverview = lazy(() => import('../pages/admin/Overview.jsx'))
@@ -50,6 +53,7 @@ const AdminUsers = lazy(() => import('../pages/admin/Users.jsx'))
 const AdminCompanies = lazy(() => import('../pages/admin/AdminCompanies.jsx'))
 const AdminJobs = lazy(() => import('../pages/admin/AdminJobs.jsx'))
 const AdminReports = lazy(() => import('../pages/admin/Reports.jsx'))
+const RecruiterApplications = lazy(() => import('../pages/admin/RecruiterApplications.jsx'))
 
 const Articles = lazy(() => import('../pages/content/Articles.jsx'))
 const ArticleDetails = lazy(() => import('../pages/content/ArticleDetails.jsx'))
@@ -96,6 +100,8 @@ export default function AppRoutes() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/recruiter/onboarding" element={<RecruiterOnboarding />} />
+          <Route path="/invite/accept" element={<AcceptInvite />} />
 
           {/* Student */}
           <Route
@@ -124,6 +130,7 @@ export default function AppRoutes() {
           >
             <Route index element={<RecruiterOverview />} />
             <Route path="company" element={<CompanyProfile />} />
+            <Route path="team" element={<TeamManagement />} />
             <Route path="jobs" element={<MyJobs />} />
             <Route path="jobs/new" element={<JobForm />} />
             <Route path="jobs/:id/edit" element={<JobForm />} />
@@ -139,6 +146,7 @@ export default function AppRoutes() {
           >
             <Route index element={<AdminOverview />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="recruiter-requests" element={<RecruiterApplications />} />
             <Route path="companies" element={<AdminCompanies />} />
             <Route path="jobs" element={<AdminJobs />} />
             <Route path="reports" element={<AdminReports />} />

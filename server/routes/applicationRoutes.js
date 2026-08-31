@@ -6,14 +6,14 @@ const {
   getApplicationById,
   updateApplicationStatus,
 } = require('../controllers/applicationController')
-const { protect, authorize } = require('../middleware/auth')
+const { protect, authorize, requireApprovedRecruiter } = require('../middleware/auth')
 
 const router = express.Router()
 
 router.get('/', protect, authorize('student'), getMyApplications)
-router.get('/recruiter', protect, authorize('recruiter'), getApplicationsForRecruiter)
-router.get('/job/:jobId', protect, authorize('recruiter', 'admin'), getApplicantsForJob)
+router.get('/recruiter', protect, requireApprovedRecruiter, getApplicationsForRecruiter)
+router.get('/job/:jobId', protect, requireApprovedRecruiter, getApplicantsForJob)
 router.get('/:id', protect, getApplicationById)
-router.put('/:id/status', protect, authorize('recruiter', 'admin'), updateApplicationStatus)
+router.put('/:id/status', protect, requireApprovedRecruiter, updateApplicationStatus)
 
 module.exports = router

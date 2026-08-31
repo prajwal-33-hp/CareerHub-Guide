@@ -24,6 +24,7 @@ const aiRoutes = require('./routes/aiRoutes')
 const contactRoutes = require('./routes/contactRoutes')
 const messageRoutes = require('./routes/messageRoutes')
 const interviewRoutes = require('./routes/interviewRoutes')
+const recruiterVerificationRoutes = require('./routes/recruiterVerificationRoutes')
 
 connectDB()
 
@@ -143,6 +144,7 @@ app.use('/api/ai', aiRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/interviews', interviewRoutes)
+app.use('/api/recruiter-verification', recruiterVerificationRoutes)
 
 // --- Root route ---
 app.get('/', (req, res) => {

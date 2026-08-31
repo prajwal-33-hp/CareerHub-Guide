@@ -47,8 +47,24 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    // Recruiter link
+    // Recruiter & Company verification fields
     company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
+    recruiterStatus: {
+      type: String,
+      enum: ['NONE', 'REQUESTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'SUSPENDED', 'REVOKED'],
+      default: 'NONE',
+      index: true,
+    },
+    companyRole: {
+      type: String,
+      enum: ['OWNER', 'ADMIN', 'RECRUITER', 'HIRING_MANAGER'],
+    },
+    workEmail: { type: String, lowercase: true, trim: true },
+    workPhone: { type: String, trim: true },
+    designation: { type: String, trim: true },
+    department: { type: String, trim: true },
+    isEmailVerified: { type: Boolean, default: false },
+    isPhoneVerified: { type: Boolean, default: false },
 
     // Password reset fields
     resetPasswordToken: { type: String, select: false },
@@ -79,4 +95,13 @@ userSchema.methods.toSafeObject = function toSafeObject() {
   return obj
 }
 
+userSchema.methods.isApprovedRecruiter = function isApprovedRecruiter() {
+  return (
+    this.role === 'recruiter' &&
+    this.recruiterStatus === 'APPROVED' &&
+    this.status === 'active'
+  )
+}
+
 module.exports = mongoose.model('User', userSchema)
+
