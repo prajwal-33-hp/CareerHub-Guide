@@ -12,6 +12,7 @@ import {
   XCircle,
   AlertTriangle,
   Mail,
+  MessageSquare,
   Sparkles,
   FilePen,
   Users,
@@ -68,7 +69,12 @@ export default function JobDetails() {
   const saved = isSaved(job._id)
   const applied = hasApplied(job._id)
   const isExpired = Boolean(job.deadline && new Date() > new Date(job.deadline)) || job.status === 'closed'
-  const isOwnerRecruiter = user && String(job.postedBy?._id || job.postedBy) === String(user._id)
+  const recruiterUserId =
+    job.postedBy?._id ||
+    (typeof job.postedBy === 'string' ? job.postedBy : null) ||
+    company?.owner?._id ||
+    (typeof company?.owner === 'string' ? company?.owner : null)
+  const isOwnerRecruiter = user && recruiterUserId && String(recruiterUserId) === String(user._id)
   const isRecruiterOrAdmin = user && (user.role === 'recruiter' || user.role === 'admin')
 
   function handleApply() {
@@ -189,14 +195,12 @@ export default function JobDetails() {
               </button>
             )}
 
-            {!isOwnerRecruiter && (
+            {!isOwnerRecruiter && recruiterUserId && (
               <Link
-                to={`/contact?company=${company?._id}&subject=Inquiry%20regarding%20${encodeURIComponent(
-                  job.title
-                )}`}
-                className="btn-ghost flex items-center gap-1.5 text-xs text-ink-soft hover:text-ink"
+                to={`/student/dashboard/messages?user=${recruiterUserId}&job=${job._id}`}
+                className="btn-secondary flex items-center gap-1.5 text-xs text-ink font-semibold hover:border-signal"
               >
-                <Mail size={15} /> Message Recruiter
+                <MessageSquare size={15} /> Message Recruiter
               </Link>
             )}
 

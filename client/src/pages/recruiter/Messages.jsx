@@ -127,20 +127,25 @@ export default function RecruiterMessages() {
     if (!socket) return
 
     const handleNewMessage = (msg) => {
-      if (activeConversation && msg.conversation === activeConversation._id) {
-        setMessages((prev) => [...prev, msg])
+      const convId = typeof msg.conversation === 'string' ? msg.conversation : msg.conversation?._id
+
+      if (activeConversation && String(convId) === String(activeConversation._id)) {
+        setMessages((prev) => {
+          if (prev.some((m) => String(m._id) === String(msg._id))) return prev
+          return [...prev, msg]
+        })
         api.put(`/messages/conversation/${activeConversation._id}/read`).catch(() => { })
       }
 
       setConversations((prev) => {
-        const index = prev.findIndex((c) => c._id === msg.conversation)
+        const index = prev.findIndex((c) => String(c._id) === String(convId))
         if (index !== -1) {
           const updated = {
             ...prev[index],
             lastMessageText: msg.text,
             lastMessageAt: msg.createdAt,
             unread:
-              activeConversation && activeConversation._id === msg.conversation
+              activeConversation && String(activeConversation._id) === String(convId)
                 ? 0
                 : (prev[index].unread || 0) + 1,
           }
@@ -173,12 +178,14 @@ export default function RecruiterMessages() {
     }
 
     socket.on('new_message', handleNewMessage)
+    socket.on('conversation_message', handleNewMessage)
     socket.on('user_typing', handleTyping)
     socket.on('user_stop_typing', handleStopTyping)
     socket.on('messages_read', handleMessagesRead)
 
     return () => {
       socket.off('new_message', handleNewMessage)
+      socket.off('conversation_message', handleNewMessage)
       socket.off('user_typing', handleTyping)
       socket.off('user_stop_typing', handleStopTyping)
       socket.off('messages_read', handleMessagesRead)

@@ -142,10 +142,9 @@ const getJobByIdOrSlug = asyncHandler(async (req, res) => {
   const { idOrSlug } = req.params
   const isValidId = mongoose.Types.ObjectId.isValid(idOrSlug)
 
-  const job = await Job.findOne(isValidId ? { _id: idOrSlug } : { slug: idOrSlug }).populate(
-    'company',
-    'name slug logo location industry description employees'
-  )
+  const job = await Job.findOne(isValidId ? { _id: idOrSlug } : { slug: idOrSlug })
+    .populate('company', 'name slug logo location industry description employees owner')
+    .populate('postedBy', 'name email role photoUrl')
 
   if (!job) {
     res.status(404)
