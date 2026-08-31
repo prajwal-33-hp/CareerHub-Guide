@@ -19,6 +19,9 @@ function getBrevoTransporter() {
       pool: true,
       maxConnections: 5,
       maxMessages: 100,
+      connectionTimeout: 2500, // 2.5s rapid failover timeout
+      greetingTimeout: 2500,
+      socketTimeout: 4000,
       auth: {
         user: brevoUser,
         pass: brevoKey,
@@ -44,6 +47,9 @@ function getGmailTransporter() {
       pool: true,
       maxConnections: 5,
       maxMessages: 100,
+      connectionTimeout: 3000,
+      greetingTimeout: 3000,
+      socketTimeout: 5000,
       auth: {
         user: gmailUser,
         pass: gmailPass,
