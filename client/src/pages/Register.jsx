@@ -518,9 +518,9 @@ export default function Register() {
                   </div>
                 )}
                 {emailCheckState.valid === true && emailCheckState.status === 'available' && (
-                  <p className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 animate-fadeIn">
-                    <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                    Verified real email domain (Deliverable)
+                  <p className="flex items-center gap-1 text-[11px] font-medium text-ink-soft animate-fadeIn">
+                    <span className="text-signal-dark font-semibold">ℹ️</span>
+                    Valid mail host. You will receive a 6-digit code to verify this mailbox exists.
                   </p>
                 )}
               </div>
@@ -611,9 +611,9 @@ export default function Register() {
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 size={18} className="text-signal-dark shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-bold text-ink">Real Email Verification Code</p>
+                  <p className="text-xs font-bold text-ink">Confirm Real Mailbox Existence</p>
                   <p className="text-[11px] text-ink-soft leading-tight mt-0.5">
-                    We sent a 6-digit code to <strong className="text-ink">{otpEmail}</strong>. Enter it below to complete registration:
+                    A 6-digit verification code was dispatched to <strong className="text-ink">{otpEmail}</strong>. If this email mailbox does not exist in real life, no code will arrive and registration cannot proceed:
                   </p>
                 </div>
               </div>

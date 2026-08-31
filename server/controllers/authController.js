@@ -597,7 +597,7 @@ const checkEmailLive = asyncHandler(async (req, res) => {
   return res.json({
     valid: true,
     status: 'available',
-    message: 'Verified real email address',
+    message: 'Valid mail host. 6-digit code required to confirm mailbox existence.',
     normalizedEmail: validation.normalizedEmail,
     domain: validation.domain,
   })
