@@ -57,6 +57,7 @@ export default function Login() {
   const [forgotLoading, setForgotLoading] = useState(false)
   const [forgotError, setForgotError] = useState('')
   const [resendTimer, setResendTimer] = useState(0)
+  const [testResetCode, setTestResetCode] = useState('')
 
   // Countdown timer for Forgot Password OTP Resend
   useEffect(() => {
@@ -97,7 +98,8 @@ export default function Login() {
     setForgotLoading(true)
 
     try {
-      await api.post('/auth/forgot-password', { email: forgotEmail.trim() })
+      const { data } = await api.post('/auth/forgot-password', { email: forgotEmail.trim() })
+      if (data.resetCode) setTestResetCode(data.resetCode)
       setForgotStep(2)
       setResendTimer(30)
       showToast(`Verification code sent to ${forgotEmail.trim()}!`, 'success')
@@ -114,7 +116,8 @@ export default function Login() {
     setForgotError('')
     setForgotLoading(true)
     try {
-      await api.post('/auth/forgot-password', { email: forgotEmail.trim() })
+      const { data } = await api.post('/auth/forgot-password', { email: forgotEmail.trim() })
+      if (data.resetCode) setTestResetCode(data.resetCode)
       setResendTimer(30)
       showToast(`New verification code sent to ${forgotEmail.trim()}!`, 'success')
     } catch (err) {
@@ -401,6 +404,25 @@ export default function Login() {
             {forgotError && (
               <div className="rounded-lg border border-danger/20 bg-danger/10 p-2.5 text-xs text-danger">
                 {forgotError}
+              </div>
+            )}
+
+            {/* Instant Dev / Testing OTP Auto-Fill Badge */}
+            {testResetCode && (
+              <div className="flex items-center justify-between rounded-xl bg-signal/15 border border-signal/30 p-2.5 text-xs text-ink">
+                <div className="flex items-center gap-1.5 font-medium">
+                  <span>⚡ Instant Code:</span>
+                  <span className="font-mono font-bold tracking-wider text-sm bg-white px-2 py-0.5 rounded border border-signal/40">
+                    {testResetCode}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForgotOtp(testResetCode)}
+                  className="btn-primary py-1 px-2.5 text-[11px] font-bold"
+                >
+                  Auto-fill ⚡
+                </button>
               </div>
             )}
 
