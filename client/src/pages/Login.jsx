@@ -7,6 +7,7 @@ import {
   EyeOff,
   User,
   Briefcase,
+  ShieldCheck,
   KeyRound,
   Mail,
   Lock,
@@ -179,29 +180,30 @@ export default function Login() {
       </div>
 
       {/* Role Selection Tabs */}
-      <div className="mt-6 grid grid-cols-2 gap-2.5">
+      <div className="mt-6 grid grid-cols-3 gap-2">
         {[
           { id: 'student', label: 'Candidate', icon: User, desc: 'Find Jobs' },
           { id: 'recruiter', label: 'Recruiter', icon: Briefcase, desc: 'Hire Talent' },
+          { id: 'admin', label: 'Admin', icon: ShieldCheck, desc: 'Platform Mgt' },
         ].map(({ id, label, icon: Icon, desc }) => {
           const isSelected = selectedRole === id
           return (
             <label
               key={id}
-              className={`flex cursor-pointer flex-col items-center rounded-xl border p-3 text-center transition ${isSelected
+              className={`flex cursor-pointer flex-col items-center rounded-xl border p-2.5 text-center transition ${isSelected
                   ? 'border-signal bg-signal/15 text-ink shadow-2xs'
                   : 'border-ink/10 bg-white text-ink-soft hover:border-ink/20'
                 }`}
             >
               <input type="radio" value={id} {...register('role')} className="hidden" />
               <div
-                className={`flex h-8 w-8 items-center justify-center rounded-lg mb-1.5 ${isSelected ? 'bg-signal text-ink' : 'bg-paper text-ink-soft'
+                className={`flex h-7 w-7 items-center justify-center rounded-lg mb-1 ${isSelected ? 'bg-signal text-ink' : 'bg-paper text-ink-soft'
                   }`}
               >
-                <Icon size={16} />
+                <Icon size={15} />
               </div>
               <span className="font-display text-xs font-bold">{label}</span>
-              <span className="text-[10px] text-ink-soft">{desc}</span>
+              <span className="text-[9px] text-ink-soft">{desc}</span>
             </label>
           )
         })}
