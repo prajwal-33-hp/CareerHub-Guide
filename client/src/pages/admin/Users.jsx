@@ -87,12 +87,26 @@ export default function Users() {
                     <span className={`badge ${u.status === 'active' ? 'bg-success/15 text-success' : 'bg-danger/10 text-danger'}`}>{u.status}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => toggleStatus(u)}
-                      className="flex items-center gap-1 justify-end text-xs font-medium text-ink-soft hover:text-ink ml-auto"
-                    >
-                      {u.status === 'active' ? <><Ban size={14} /> Suspend</> : <><CheckCircle2 size={14} /> Reactivate</>}
-                    </button>
+                    {u.role === 'admin' ? (
+                      <span className="text-[11px] font-semibold text-signal-dark bg-signal/15 px-2 py-0.5 rounded-md">
+                        Protected Owner
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => toggleStatus(u)}
+                        className="flex items-center gap-1 justify-end text-xs font-medium text-ink-soft hover:text-ink ml-auto transition"
+                      >
+                        {u.status === 'active' ? (
+                          <>
+                            <Ban size={14} /> Suspend
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={14} /> Reactivate
+                          </>
+                        )}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))

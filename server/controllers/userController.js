@@ -128,13 +128,21 @@ const updateUserStatus = asyncHandler(async (req, res) => {
     throw new Error('Status must be "active" or "suspended"')
   }
 
-  const user = await User.findByIdAndUpdate(req.params.id, { status }, { new: true })
-  if (!user) {
+  const targetUser = await User.findById(req.params.id)
+  if (!targetUser) {
     res.status(404)
     throw new Error('User not found')
   }
 
-  res.json({ user: user.toSafeObject() })
+  if (targetUser.role === 'admin' && status === 'suspended') {
+    res.status(400)
+    throw new Error('The Master Administrator account cannot be suspended.')
+  }
+
+  targetUser.status = status
+  await targetUser.save()
+
+  res.json({ user: targetUser.toSafeObject() })
 })
 
 module.exports = { getUserById, updateUser, getAllUsers, updateUserStatus }
