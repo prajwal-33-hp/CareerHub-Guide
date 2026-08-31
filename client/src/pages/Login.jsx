@@ -60,6 +60,15 @@ export default function Login() {
   const [resendTimer, setResendTimer] = useState(0)
   const [testResetCode, setTestResetCode] = useState('')
 
+  const [adminStatus, setAdminStatus] = useState({ hasAdmin: false, adminEmail: null, loading: true })
+
+  useEffect(() => {
+    api
+      .get('/auth/admin-status')
+      .then(({ data }) => setAdminStatus({ hasAdmin: data.hasAdmin, adminEmail: data.adminEmail, loading: false }))
+      .catch(() => setAdminStatus({ hasAdmin: false, adminEmail: null, loading: false }))
+  }, [])
+
   // Countdown timer for Forgot Password OTP Resend
   useEffect(() => {
     let timer
@@ -192,9 +201,8 @@ export default function Login() {
               key={id}
               onClick={() => {
                 setValue('role', id)
-                if (id === 'admin') {
-                  setValue('email', 'admin@careerhub.com')
-                  setValue('password', 'admin1234')
+                if (id === 'admin' && adminStatus.hasAdmin && adminStatus.adminEmail) {
+                  setValue('email', adminStatus.adminEmail)
                 }
               }}
               className={`flex cursor-pointer flex-col items-center rounded-xl border p-2.5 text-center transition ${isSelected
@@ -218,30 +226,47 @@ export default function Login() {
 
       {/* Admin Portal Banner */}
       {selectedRole === 'admin' && (
-        <div className="mt-4 rounded-xl border border-signal/40 bg-signal/10 p-3 text-xs text-ink flex items-start gap-2.5">
-          <ShieldCheck size={18} className="text-signal-dark shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="font-bold text-ink">Master Administrator Portal</p>
-            <p className="text-[11px] text-ink-soft mt-0.5 leading-normal">
-              Exclusive single-owner login configured for your platform administration, recruiter verification requests, and system analytics.
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="font-mono text-[11px] bg-white/80 border border-ink/10 px-2 py-0.5 rounded text-ink font-semibold">
-                admin@careerhub.com
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setValue('email', 'admin@careerhub.com')
-                  setValue('password', 'admin1234')
-                }}
-                className="text-[11px] font-bold text-signal-dark hover:underline cursor-pointer"
-              >
-                Auto-fill
-              </button>
+        adminStatus.hasAdmin ? (
+          <div className="mt-4 rounded-xl border border-signal/40 bg-signal/10 p-3 text-xs text-ink flex items-start gap-2.5">
+            <ShieldCheck size={18} className="text-signal-dark shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-bold text-ink">Master Administrator Portal</p>
+              <p className="text-[11px] text-ink-soft mt-0.5 leading-normal">
+                Exclusive single-owner login configured for platform oversight, recruiter verification, and system management.
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="font-mono text-[11px] bg-white/80 border border-ink/10 px-2 py-0.5 rounded text-ink font-semibold">
+                  {adminStatus.adminEmail}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValue('email', adminStatus.adminEmail)
+                  }}
+                  className="text-[11px] font-bold text-signal-dark hover:underline cursor-pointer"
+                >
+                  Fill Email
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-signal/40 bg-signal/15 p-4 text-xs text-ink flex items-start gap-2.5">
+            <ShieldCheck size={20} className="text-signal-dark shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-bold text-ink text-sm">No Master Admin Initialized Yet</p>
+              <p className="text-[11px] text-ink-soft mt-1 leading-normal">
+                As the platform owner, you can claim the single Master Administrator account right now and set your own personal login email and password.
+              </p>
+              <Link
+                to="/register?role=admin"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-ink px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-ink/90 transition"
+              >
+                <ShieldCheck size={14} /> Claim Master Admin Ownership Now →
+              </Link>
+            </div>
+          </div>
+        )
       )}
 
       {/* Error Alert */}

@@ -362,6 +362,71 @@ const updateAccount = asyncHandler(async (req, res) => {
   })
 })
 
+// @route   GET /api/auth/admin-status
+// @access  Public
+const getAdminStatus = asyncHandler(async (req, res) => {
+  const adminUser = await User.findOne({ role: 'admin' }).select('name email createdAt')
+  res.json({
+    hasAdmin: Boolean(adminUser),
+    adminEmail: adminUser ? adminUser.email : null,
+    adminName: adminUser ? adminUser.name : null,
+  })
+})
+
+// @route   POST /api/auth/register-admin
+// @access  Public (Allowed exclusively if 0 admin accounts exist in the entire system)
+const registerAdmin = asyncHandler(async (req, res) => {
+  const { name, email, password } = req.body
+
+  if (!name || !email || !password) {
+    res.status(400)
+    throw new Error('Name, email, and password are required')
+  }
+
+  if (password.length < 6) {
+    res.status(400)
+    throw new Error('Password must be at least 6 characters')
+  }
+
+  // STRICT SINGLE-OWNER LOCK:
+  // If an admin already exists, permanently lock admin registration!
+  const existingAdmin = await User.findOne({ role: 'admin' })
+  if (existingAdmin) {
+    res.status(403)
+    throw new Error(
+      'Master Administrator account has already been claimed and initialized. No additional admin signups are permitted.'
+    )
+  }
+
+  const normalizedEmail = email.toLowerCase().trim()
+  let user = await User.findOne({ email: normalizedEmail })
+
+  if (user) {
+    // If the user already exists with this email, upgrade them to the Single Master Admin!
+    user.name = name.trim()
+    user.password = password
+    user.role = 'admin'
+    user.status = 'active'
+    await user.save()
+  } else {
+    // Create the one and only Master Admin user
+    user = await User.create({
+      name: name.trim(),
+      email: normalizedEmail,
+      password,
+      role: 'admin',
+      status: 'active',
+    })
+  }
+
+  const token = generateToken(user._id, user.role)
+  res.status(201).json({
+    token,
+    user: user.toSafeObject(),
+    message: 'Master Administrator registered successfully! You have exclusive owner access.',
+  })
+})
+
 module.exports = {
   register,
   login,
@@ -369,6 +434,8 @@ module.exports = {
   forgotPassword,
   resetPassword,
   updateAccount,
+  getAdminStatus,
+  registerAdmin,
   googleAuth,
   googleCallback,
 }
