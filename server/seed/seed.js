@@ -110,36 +110,7 @@ async function seed() {
     await User.findByIdAndUpdate(recruiterUsers[i]._id, { company: companies[i]._id })
   }
 
-  console.log('Seeding jobs...')
-  const jobDefs = [
-    { title: 'React Developer', companyIdx: 0, location: 'Bengaluru', workMode: 'Hybrid', jobType: 'Full Time', experience: '1-3 yrs', salary: '₹8L - ₹14L', skills: ['React', 'TypeScript', 'Redux', 'Tailwind CSS'], description: 'Build the dashboards our lending partners use to review credit risk in real time.', responsibilities: ['Build and maintain React components for the risk dashboard', 'Collaborate with backend engineers on API contracts', 'Optimize rendering performance for data-dense views'], requirements: ['1-3 years of experience with React', 'Strong understanding of state management patterns', 'Comfort with REST APIs and async data'], benefits: ['Health insurance', 'Annual learning stipend', 'Hybrid work', 'ESOPs'] },
-    { title: 'Backend Engineer (Node.js)', companyIdx: 1, location: 'Pune', workMode: 'On-site', jobType: 'Full Time', experience: '2-4 yrs', salary: '₹10L - ₹16L', skills: ['Node.js', 'Express', 'MongoDB', 'AWS'], description: 'Scale the ingestion pipeline that processes sensor readings from farms across the country.', responsibilities: ['Design REST APIs for the sensor ingestion pipeline', 'Optimize MongoDB queries at scale', 'Set up monitoring and alerting'], requirements: ['2+ years with Node.js and Express', 'Experience with MongoDB', 'Understanding of message queues'], benefits: ['Provident fund matching', 'On-site meals', 'Relocation assistance'] },
-    { title: 'Full Stack Developer', companyIdx: 3, location: 'Remote', workMode: 'Remote', jobType: 'Full Time', experience: '2-5 yrs', salary: '₹12L - ₹20L', skills: ['React', 'Node.js', 'PostgreSQL', 'Docker'], description: 'Own features end-to-end across our accounting automation product.', responsibilities: ['Ship features across the full stack', 'Review pull requests', 'Participate in on-call rotation'], requirements: ['2+ years shipping production full stack applications', 'Comfort with SQL databases', 'Excellent written communication'], benefits: ['Fully remote', 'Flexible hours', 'Home office stipend', 'Unlimited PTO'] },
-    { title: 'Frontend Developer Intern', companyIdx: 2, location: 'Hyderabad', workMode: 'On-site', jobType: 'Internship', experience: '0-1 yrs', salary: '₹25,000/mo', skills: ['React', 'JavaScript', 'CSS'], description: 'A 6-month internship for students who want hands-on experience building patient-facing interfaces.', responsibilities: ['Build UI components under senior engineer guidance', 'Fix bugs from the QA backlog'], requirements: ['Final year student or recent graduate', 'Basic knowledge of React and JavaScript'], benefits: ['Stipend', 'Certificate of completion', 'Pre-placement offer for top performers'] },
-    { title: 'DevOps Engineer', companyIdx: 4, location: 'Mumbai', workMode: 'Hybrid', jobType: 'Full Time', experience: '3-6 yrs', salary: '₹15L - ₹24L', skills: ['Kubernetes', 'Docker', 'CI/CD', 'AWS'], description: 'Scale our marketplace infrastructure and own our Kubernetes clusters.', responsibilities: ['Manage Kubernetes clusters across environments', 'Build and maintain CI/CD pipelines'], requirements: ['3+ years in a DevOps or SRE role', 'Deep knowledge of Kubernetes and Docker'], benefits: ['Health insurance', 'Performance bonus', 'Hybrid work model'] },
-    { title: 'Python Developer Intern', companyIdx: 0, location: 'Remote', workMode: 'Remote', jobType: 'Internship', experience: '0-1 yrs', salary: '₹20,000/mo', skills: ['Python', 'Django', 'SQL'], description: 'Support our data engineering team with ETL pipeline work.', responsibilities: ['Write scripts to clean and transform data', 'Support the data team with ad-hoc analysis'], requirements: ['Coursework or projects using Python', 'Basic SQL knowledge'], benefits: ['Stipend', 'Mentorship', 'Flexible remote schedule'] },
-  ]
-
-  await Job.create(
-    jobDefs.map((j) => ({
-      title: j.title,
-      slug: slugify(`${j.title}-${j.location}`),
-      description: j.description,
-      company: companies[j.companyIdx]._id,
-      postedBy: recruiterUsers[j.companyIdx]._id,
-      location: j.location,
-      skills: j.skills,
-      salary: j.salary,
-      experience: j.experience,
-      jobType: j.jobType,
-      workMode: j.workMode,
-      responsibilities: j.responsibilities,
-      requirements: j.requirements,
-      benefits: j.benefits,
-      deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      status: 'approved',
-    }))
-  )
+  console.log('No dummy jobs seeded. Jobs will be posted manually by verified recruiters.')
 
   console.log('Seeding articles...')
   await Article.create(rawArticles.map((a) => ({ ...a, slug: slugify(a.title) })))

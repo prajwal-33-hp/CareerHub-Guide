@@ -90,11 +90,21 @@ export default function MyJobs() {
           <tbody className="divide-y divide-ink/10">
             {loading ? (
               <tr>
-                <td colSpan="6" className="px-4 py-12 text-center text-sm text-ink-soft">Loading your jobs…</td>
+                <td colSpan="7" className="px-4 py-12 text-center text-sm text-ink-soft">Loading your jobs…</td>
               </tr>
             ) : jobs.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-4 py-12 text-center text-sm text-ink-soft">No jobs posted yet. Create your first job listing.</td>
+                <td colSpan="7" className="px-4 py-12 text-center">
+                  <div className="mx-auto max-w-sm space-y-2">
+                    <p className="font-semibold text-sm text-ink">No jobs or internships posted yet</p>
+                    <p className="text-xs text-ink-soft">Create your company's first official listing to start receiving student applications.</p>
+                    <div className="pt-2">
+                      <Link to="/recruiter/dashboard/jobs/new" className="btn-primary text-xs">
+                        + Post a Job or Internship
+                      </Link>
+                    </div>
+                  </div>
+                </td>
               </tr>
             ) : (
               jobs.map((j) => (
