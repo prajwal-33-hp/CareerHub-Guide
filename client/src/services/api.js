@@ -1,7 +1,19 @@
 import axios from 'axios'
 
+const isLocalhost =
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.port === '5173' ||
+    window.location.port === '5174')
+
+const getBaseUrl = () => {
+  if (isLocalhost) return 'http://localhost:5000/api'
+  return import.meta.env.VITE_API_URL || 'https://careerhub-guide.onrender.com/api'
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://careerhub-guide.onrender.com/api',
+  baseURL: getBaseUrl(),
 })
 
 api.interceptors.request.use((config) => {
