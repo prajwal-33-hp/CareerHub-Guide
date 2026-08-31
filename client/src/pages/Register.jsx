@@ -57,8 +57,50 @@ export default function Register() {
   const [otpEmail, setOtpEmail] = useState('')
   const [otpCode, setOtpCode] = useState('')
 
+  // Live Email Real-World Existence Verification State
+  const [emailCheckState, setEmailCheckState] = useState({
+    checking: false,
+    checkedEmail: '',
+    valid: null,
+    status: null,
+    message: '',
+  })
+
   const passwordValue = watch('password') || ''
   const emailValue = watch('email') || ''
+
+  // Debounced live email real-world existence check
+  useEffect(() => {
+    const trimmed = emailValue.trim().toLowerCase()
+    if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
+      setEmailCheckState({ checking: false, checkedEmail: '', valid: null, status: null, message: '' })
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setEmailCheckState((prev) => ({ ...prev, checking: true, checkedEmail: trimmed }))
+      try {
+        const { data } = await api.get(`/auth/check-email-live?email=${encodeURIComponent(trimmed)}`)
+        setEmailCheckState({
+          checking: false,
+          checkedEmail: trimmed,
+          valid: data.valid,
+          status: data.status,
+          message: data.message,
+        })
+      } catch (err) {
+        setEmailCheckState({
+          checking: false,
+          checkedEmail: trimmed,
+          valid: false,
+          status: 'invalid',
+          message: err.message || 'This email address is invalid or does not exist in real life.',
+        })
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [emailValue])
 
   // Resend Timer Countdown
   useEffect(() => {
@@ -439,10 +481,54 @@ export default function Register() {
                     message: 'Please enter a valid email address',
                   },
                 })}
-                className="input-field pl-9"
+                className={`input-field pl-9 pr-8 transition-colors ${
+                  emailCheckState.valid === true && emailCheckState.status === 'available'
+                    ? 'border-emerald-500 focus:border-emerald-500 ring-1 ring-emerald-500/20'
+                    : emailCheckState.status === 'invalid'
+                    ? 'border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20'
+                    : emailCheckState.status === 'registered'
+                    ? 'border-amber-500 focus:border-amber-500 ring-1 ring-amber-500/20'
+                    : ''
+                }`}
               />
+              {emailCheckState.checking && (
+                <RotateCcw
+                  size={14}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-signal animate-spin"
+                  title="Checking email existence..."
+                />
+              )}
             </div>
-            {errors.email && <p className="mt-1 text-xs text-danger">{errors.email.message}</p>}
+
+            {/* Live Real-World Email Existence Feedback */}
+            {emailCheckState.checkedEmail === emailValue.trim().toLowerCase() && !emailCheckState.checking && (
+              <div className="mt-1.5 space-y-1 text-xs">
+                {emailCheckState.status === 'invalid' && (
+                  <div className="flex items-start gap-1.5 rounded-lg border border-rose-200 bg-rose-50/90 p-2 text-rose-700 font-medium animate-fadeIn">
+                    <span className="shrink-0 text-sm">❌</span>
+                    <span className="leading-tight">{emailCheckState.message}</span>
+                  </div>
+                )}
+                {emailCheckState.status === 'registered' && (
+                  <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50/90 p-2 text-amber-800 font-medium animate-fadeIn">
+                    <span className="leading-tight">⚠️ {emailCheckState.message}</span>
+                    <Link to="/login" className="underline font-bold text-amber-900 shrink-0 ml-2">
+                      Log In →
+                    </Link>
+                  </div>
+                )}
+                {emailCheckState.valid === true && emailCheckState.status === 'available' && (
+                  <p className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 animate-fadeIn">
+                    <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                    Verified real email domain (Deliverable)
+                  </p>
+                )}
+              </div>
+            )}
+
+            {errors.email && !emailCheckState.status && (
+              <p className="mt-1 text-xs text-danger">{errors.email.message}</p>
+            )}
           </div>
 
           {/* Password */}

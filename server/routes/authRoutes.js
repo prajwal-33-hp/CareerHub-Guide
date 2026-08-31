@@ -9,6 +9,7 @@ const {
   updateAccount,
   getAdminStatus,
   registerAdmin,
+  checkEmailLive,
   googleAuth,
   googleCallback,
 } = require('../controllers/authController')
@@ -17,6 +18,7 @@ const { protect } = require('../middleware/auth')
 const router = express.Router()
 
 router.get('/admin-status', getAdminStatus)
+router.get('/check-email-live', checkEmailLive)
 router.post('/register-admin', registerAdmin)
 router.post('/send-signup-otp', sendSignupOtp)
 router.post('/register', register)

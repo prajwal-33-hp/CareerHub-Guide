@@ -565,6 +565,44 @@ const registerAdmin = asyncHandler(async (req, res) => {
   })
 })
 
+// @route   GET /api/auth/check-email-live?email=...
+// @access  Public
+const checkEmailLive = asyncHandler(async (req, res) => {
+  const { email } = req.query
+  if (!email || !email.includes('@')) {
+    return res.json({ valid: false, status: 'incomplete', message: 'Enter an email address' })
+  }
+
+  const validation = await validateRealEmail(email)
+  if (!validation.valid) {
+    return res.json({
+      valid: false,
+      status: 'invalid',
+      message: validation.error || 'This email address is invalid or does not exist.',
+      domain: validation.domain,
+    })
+  }
+
+  // Check if already registered
+  const existing = await User.findOne({ email: validation.normalizedEmail })
+  if (existing) {
+    return res.json({
+      valid: true,
+      status: 'registered',
+      message: 'This email is already registered. Please log in instead.',
+      normalizedEmail: validation.normalizedEmail,
+    })
+  }
+
+  return res.json({
+    valid: true,
+    status: 'available',
+    message: 'Verified real email address',
+    normalizedEmail: validation.normalizedEmail,
+    domain: validation.domain,
+  })
+})
+
 module.exports = {
   sendSignupOtp,
   register,
@@ -575,6 +613,7 @@ module.exports = {
   updateAccount,
   getAdminStatus,
   registerAdmin,
+  checkEmailLive,
   googleAuth,
   googleCallback,
 }
