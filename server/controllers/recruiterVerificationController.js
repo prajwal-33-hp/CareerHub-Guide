@@ -12,6 +12,7 @@ const Notification = require('../models/Notification')
 const { emitNotification } = require('../utils/socket')
 const {
   sendOtpEmail,
+  sendPhoneOtpEmail,
   sendApplicationApprovedEmail,
 } = require('../services/emailService')
 
@@ -284,6 +285,14 @@ const sendOtp = asyncHandler(async (req, res) => {
     sendOtpEmail(cleanTarget, code, req.user.name || 'Recruiter').catch((err) =>
       console.error('[EmailService] Failed to send real OTP email:', err.message)
     )
+  } else if (type === 'phone') {
+    // Deliver Phone OTP to user's registered email so they receive it with 0 SMS cost
+    sendPhoneOtpEmail({
+      toEmail: req.user.email,
+      phoneNumber: cleanTarget,
+      otp: code,
+      recipientName: req.user.name || 'Recruiter',
+    }).catch((err) => console.error('[EmailService] Failed to send phone OTP email:', err.message))
   }
 
   // Audit log
@@ -298,12 +307,13 @@ const sendOtp = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: `6-digit verification code sent to ${cleanTarget}. Valid for 10 minutes.`,
+    message:
+      type === 'phone'
+        ? `6-digit phone verification code sent! (Also delivered to your email: ${req.user.email})`
+        : `6-digit verification code sent to ${cleanTarget}. Valid for 10 minutes.`,
     target: cleanTarget,
     type,
     expiresAt,
-    // Included in dev/testing response for instant verification without external SMS/Email gateway costs
-    testOtp: code,
   })
 })
 
