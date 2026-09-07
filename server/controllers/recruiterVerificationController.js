@@ -285,17 +285,21 @@ const sendOtp = asyncHandler(async (req, res) => {
 
   // Dispatch real email if type === 'email'
   if (type === 'email') {
-    sendOtpEmail(cleanTarget, code, req.user.name || 'Recruiter').catch((err) =>
-      console.error('[EmailService] Failed to send real OTP email:', err.message)
-    )
+    const dispatch = await sendOtpEmail(cleanTarget, code, req.user.name || 'Recruiter')
+    if (!dispatch.success) {
+      console.error('[EmailService] Failed to send real OTP email:', dispatch.error)
+    }
   } else if (type === 'phone') {
     // Deliver Phone OTP to user's registered email so they receive it with 0 SMS cost
-    sendPhoneOtpEmail({
+    const dispatch = await sendPhoneOtpEmail({
       toEmail: req.user.email,
       phoneNumber: cleanTarget,
       otp: code,
       recipientName: req.user.name || 'Recruiter',
-    }).catch((err) => console.error('[EmailService] Failed to send phone OTP email:', err.message))
+    })
+    if (!dispatch.success) {
+      console.error('[EmailService] Failed to send phone OTP email:', dispatch.error)
+    }
   }
 
   // Audit log
