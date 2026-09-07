@@ -134,12 +134,6 @@ async function sendEmail({ to, subject, html, text }) {
     subject,
     text: text || html.replace(/<[^>]*>?/gm, ''),
     html,
-    priority: 'high',
-    headers: {
-      'X-Priority': '1 (Highest)',
-      'X-MSMail-Priority': 'High',
-      Importance: 'High',
-    },
   }
 
   // 1. Attempt Gmail SMTP (Verified & Fast)
@@ -163,7 +157,7 @@ async function sendEmail({ to, subject, html, text }) {
   }
 
   // 2. Attempt Brevo (if configured and not marked disabled)
-  if (!brevoDisabled) {
+  if (!brevoDisabled && (process.env.BREVO_SMTP_KEY || process.env.BREVO_SMTP_USER)) {
     const brevo = getBrevoTransporter()
     if (brevo) {
       try {
@@ -185,19 +179,26 @@ async function sendEmail({ to, subject, html, text }) {
     }
   }
 
-  // 3. Dev Fallback: Ethereal test inbox
-  try {
-    const ethereal = await getEtherealTransporter()
-    const info = await ethereal.sendMail(mailOptions)
-    const previewUrl = nodemailer.getTestMessageUrl(info)
-    console.log(`[EmailService] Email delivered via Ethereal test transport to ${to}`)
-    if (previewUrl) {
-      console.log(`[EmailService] 🔗 Live test email preview: ${previewUrl}`)
+  // 3. Dev Fallback: Only in development
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      const ethereal = await getEtherealTransporter()
+      const info = await ethereal.sendMail(mailOptions)
+      const previewUrl = nodemailer.getTestMessageUrl(info)
+      console.log(`[EmailService] Email delivered via Ethereal test transport to ${to}`)
+      if (previewUrl) {
+        console.log(`[EmailService] 🔗 Live test email preview: ${previewUrl}`)
+      }
+      return { success: true, messageId: info.messageId, previewUrl, provider: 'ethereal' }
+    } catch (err) {
+      console.error(`[EmailService] Dev ethereal fallback failed for ${to}:`, err.message)
     }
-    return { success: true, messageId: info.messageId, previewUrl, provider: 'ethereal' }
-  } catch (err) {
-    console.error(`[EmailService] All email transports failed for ${to}:`, err.message)
-    return { success: false, error: err.message }
+  }
+
+  console.error(`[EmailService] All email transports failed for ${to}`)
+  return {
+    success: false,
+    error: 'Failed to deliver verification email to this address. Please ensure the email is valid and can receive mail.',
   }
 }
 
@@ -209,6 +210,7 @@ async function sendEmail({ to, subject, html, text }) {
  * Send 6-Digit Email Verification Code for User Registration / Signup
  */
 async function sendSignupOtpEmail(toEmail, otpCode, recipientName = 'User') {
+  console.log(`🔑 [OTP DISPATCH - SIGNUP] Target: ${toEmail} | Code: ${otpCode}`)
   const subject = `Your CareerHub Account Verification Code: ${otpCode}`
   const html = `
     <!DOCTYPE html>
@@ -446,6 +448,7 @@ async function sendApplicationApprovedEmail(toEmail, recipientName, companyName)
  * Send 6-Digit Password Reset OTP Email
  */
 async function sendPasswordResetEmail(toEmail, resetCode, recipientName = 'User') {
+  console.log(`🔑 [OTP DISPATCH - PASSWORD RESET] Target: ${toEmail} | Code: ${resetCode}`)
   const subject = `Your CareerHub Password Reset Code: ${resetCode}`
   const html = `
     <!DOCTYPE html>
