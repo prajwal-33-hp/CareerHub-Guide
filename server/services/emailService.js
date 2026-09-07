@@ -134,12 +134,6 @@ async function sendEmail({ to, subject, html, text }) {
     subject,
     text: text || html.replace(/<[^>]*>?/gm, ''),
     html,
-    priority: 'high',
-    headers: {
-      'X-Priority': '1 (Highest)',
-      'X-MSMail-Priority': 'High',
-      Importance: 'High',
-    },
   }
 
   // 1. Attempt Gmail SMTP (Verified & Fast)

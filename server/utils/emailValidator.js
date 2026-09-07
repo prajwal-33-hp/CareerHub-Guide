@@ -268,18 +268,6 @@ async function validateRealEmail(email) {
     return { valid: false, error: 'Email username contains invalid punctuation.' }
   }
 
-  // 2. Check for obvious dummy / placeholder handles
-  const isDummy =
-    DUMMY_LOCAL_PARTS.has(localPart.toLowerCase()) ||
-    /^(?:test|fake|dummy|temp|sample|example|asdf|qwerty|zxcv)(?:[._-]?\d+)?$/i.test(localPart)
-
-  if (isDummy) {
-    return {
-      valid: false,
-      error: `"${localPart}" appears to be a placeholder or test handle. Please use your genuine, active personal or work email address.`,
-    }
-  }
-
   if (!domain || domain.length > 255 || !domain.includes('.')) {
     return { valid: false, error: 'Email domain is invalid.' }
   }
