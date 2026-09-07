@@ -235,10 +235,7 @@ const sendOtp = asyncHandler(async (req, res) => {
     throw new Error('Type must be either "email" or "phone"')
   }
 
-  const cleanTarget =
-    type === 'phone'
-      ? target.toString().replace(/[\s\-()]/g, '')
-      : target.trim().toLowerCase()
+  const cleanTarget = target.trim().toLowerCase()
 
   // Check rate limit on resends (max 3 resends in last 15 mins, min 30s cooldown)
   const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000)
@@ -285,21 +282,17 @@ const sendOtp = asyncHandler(async (req, res) => {
 
   // Dispatch real email if type === 'email'
   if (type === 'email') {
-    const dispatch = await sendOtpEmail(cleanTarget, code, req.user.name || 'Recruiter')
-    if (!dispatch.success) {
-      console.error('[EmailService] Failed to send real OTP email:', dispatch.error)
-    }
+    sendOtpEmail(cleanTarget, code, req.user.name || 'Recruiter').catch((err) =>
+      console.error('[EmailService] Failed to send real OTP email:', err.message)
+    )
   } else if (type === 'phone') {
     // Deliver Phone OTP to user's registered email so they receive it with 0 SMS cost
-    const dispatch = await sendPhoneOtpEmail({
+    sendPhoneOtpEmail({
       toEmail: req.user.email,
       phoneNumber: cleanTarget,
       otp: code,
       recipientName: req.user.name || 'Recruiter',
-    })
-    if (!dispatch.success) {
-      console.error('[EmailService] Failed to send phone OTP email:', dispatch.error)
-    }
+    }).catch((err) => console.error('[EmailService] Failed to send phone OTP email:', err.message))
   }
 
   // Audit log
@@ -312,7 +305,7 @@ const sendOtp = asyncHandler(async (req, res) => {
     details: { target: cleanTarget, type },
   })
 
-  const responseData = {
+  res.json({
     success: true,
     message:
       type === 'phone'
@@ -321,12 +314,7 @@ const sendOtp = asyncHandler(async (req, res) => {
     target: cleanTarget,
     type,
     expiresAt,
-  }
-  if (process.env.NODE_ENV === 'development') {
-    responseData.testOtp = code
-  }
-
-  res.json(responseData)
+  })
 })
 
 // @route   POST /api/recruiter-verification/verify-otp
@@ -339,10 +327,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
     throw new Error('Type, target, and 6-digit verification code are required')
   }
 
-  const cleanTarget =
-    type === 'phone'
-      ? target.toString().replace(/[\s\-()]/g, '')
-      : target.trim().toLowerCase()
+  const cleanTarget = target.trim().toLowerCase()
   const cleanOtp = otp.toString().trim()
 
   const otpDoc = await VerificationOtp.findOne({
@@ -705,9 +690,8 @@ const updateApplicationStatusByAdmin = asyncHandler(async (req, res) => {
       const notif = await Notification.create({
         user: applicant._id,
         type: 'recruiter_rejected',
-        message: `⚠️ Your recruiter verification request was not approved. Reason: ${
-          rejectionReason || 'Details could not be verified'
-        }. You may review the feedback and resubmit.`,
+        message: `⚠️ Your recruiter verification request was not approved. Reason: ${rejectionReason || 'Details could not be verified'
+          }. You may review the feedback and resubmit.`,
       })
       emitNotification(applicant._id, notif)
     } catch (nErr) {

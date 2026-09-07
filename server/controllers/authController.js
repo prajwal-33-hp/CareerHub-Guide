@@ -200,13 +200,13 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
       res.status(400)
       throw new Error(
         dispatch.error ||
-          `The email address "${normalizedEmail}" does not exist in real life. Please check for typos or use an active email account.`
+        `The email address "${normalizedEmail}" does not exist in real life. Please check for typos or use an active email account.`
       )
     }
     res.status(400)
     throw new Error(
       dispatch.error ||
-        'Unable to deliver verification email to this address. Please ensure this email is real, active, and typed correctly.'
+      'Unable to deliver verification email to this address. Please ensure this email is real, active, and typed correctly.'
     )
   }
 
@@ -222,16 +222,11 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
     lastSentAt: new Date(),
   })
 
-  const responseData = {
+  res.json({
     success: true,
     message: `A 6-digit verification code has been dispatched to ${normalizedEmail}. Please check your inbox.`,
     email: normalizedEmail,
-  }
-  if (process.env.NODE_ENV === 'development') {
-    responseData.devOtp = otpCode
-  }
-
-  res.json(responseData)
+  })
 })
 
 // @route   POST /api/auth/register
@@ -395,26 +390,17 @@ const forgotPassword = asyncHandler(async (req, res) => {
   user.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
   await user.save()
 
-  // Dispatch real email via SMTP
-  const dispatch = await sendPasswordResetEmail(user.email, resetCode, user.name || 'User')
-  if (!dispatch.success) {
-    res.status(400)
-    throw new Error(
-      dispatch.error ||
-        'Unable to deliver verification code to this email. Please ensure your email is active and try again.'
-    )
-  }
+  // Dispatch real email via SMTP non-blockingly in background
+  sendPasswordResetEmail(user.email, resetCode, user.name || 'User').catch((err) =>
+    console.error('[EmailService] Failed to send password reset email:', err.message)
+  )
 
-  const responseData = {
+  // Respond immediately so user sees step 2 in <50ms with zero lag
+  res.json({
     success: true,
     message: `A 6-digit verification code has been sent to ${user.email}. Please check your inbox.`,
     email: user.email,
-  }
-  if (process.env.NODE_ENV === 'development') {
-    responseData.resetCode = resetCode
-  }
-
-  res.json(responseData)
+  })
 })
 
 // @route   POST /api/auth/reset-password

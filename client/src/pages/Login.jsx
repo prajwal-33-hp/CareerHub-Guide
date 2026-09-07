@@ -203,8 +203,8 @@ export default function Login() {
                 setValue('role', id)
               }}
               className={`flex cursor-pointer flex-col items-center rounded-xl border p-2.5 text-center transition ${isSelected
-                  ? 'border-signal bg-signal/15 text-ink shadow-2xs'
-                  : 'border-ink/10 bg-white text-ink-soft hover:border-ink/20'
+                ? 'border-signal bg-signal/15 text-ink shadow-2xs'
+                : 'border-ink/10 bg-white text-ink-soft hover:border-ink/20'
                 }`}
             >
               <input type="radio" value={id} {...register('role')} className="hidden" />
@@ -429,16 +429,9 @@ export default function Login() {
         ) : (
           <form onSubmit={handleConfirmResetPassword} className="space-y-4">
             <p className="text-xs text-ink-soft">
-              A 6-digit verification code was dispatched to <span className="font-semibold text-ink">{forgotEmail}</span>.
-              Please check your inbox (and Spam/Promotions folder):
+              Account verified for <span className="font-semibold text-ink">{forgotEmail}</span>.
+              Enter the 6-digit code and choose your new password.
             </p>
-
-            {testResetCode && (
-              <div className="rounded-lg bg-signal/15 border border-signal/40 p-2 text-center text-xs">
-                <span className="text-ink-soft">Dev Code: </span>
-                <span className="font-mono font-bold text-ink tracking-widest">{testResetCode}</span>
-              </div>
-            )}
 
             {forgotError && (
               <div className="rounded-lg border border-danger/20 bg-danger/10 p-2.5 text-xs text-danger">
@@ -455,11 +448,10 @@ export default function Login() {
                   type="button"
                   onClick={handleResendCode}
                   disabled={resendTimer > 0 || forgotLoading}
-                  className={`text-[11px] font-semibold transition ${
-                    resendTimer > 0
+                  className={`text-[11px] font-semibold transition ${resendTimer > 0
                       ? 'text-ink-soft cursor-not-allowed'
                       : 'text-signal-dark hover:underline'
-                  }`}
+                    }`}
                 >
                   {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}
                 </button>
@@ -467,12 +459,10 @@ export default function Login() {
               <input
                 type="text"
                 placeholder="123456"
-                maxLength={6}
                 value={forgotOtp}
-                onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) => setForgotOtp(e.target.value)}
                 className="input-field font-mono text-center tracking-widest text-sm font-bold"
                 required
-                autoFocus
               />
             </div>
 
