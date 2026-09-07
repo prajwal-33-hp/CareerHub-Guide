@@ -235,7 +235,10 @@ const sendOtp = asyncHandler(async (req, res) => {
     throw new Error('Type must be either "email" or "phone"')
   }
 
-  const cleanTarget = target.trim().toLowerCase()
+  const cleanTarget =
+    type === 'phone'
+      ? target.toString().replace(/[\s\-()]/g, '')
+      : target.trim().toLowerCase()
 
   // Check rate limit on resends (max 3 resends in last 15 mins, min 30s cooldown)
   const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000)
@@ -305,7 +308,7 @@ const sendOtp = asyncHandler(async (req, res) => {
     details: { target: cleanTarget, type },
   })
 
-  res.json({
+  const responseData = {
     success: true,
     message:
       type === 'phone'
@@ -314,7 +317,12 @@ const sendOtp = asyncHandler(async (req, res) => {
     target: cleanTarget,
     type,
     expiresAt,
-  })
+  }
+  if (process.env.NODE_ENV === 'development') {
+    responseData.testOtp = code
+  }
+
+  res.json(responseData)
 })
 
 // @route   POST /api/recruiter-verification/verify-otp
@@ -327,7 +335,10 @@ const verifyOtp = asyncHandler(async (req, res) => {
     throw new Error('Type, target, and 6-digit verification code are required')
   }
 
-  const cleanTarget = target.trim().toLowerCase()
+  const cleanTarget =
+    type === 'phone'
+      ? target.toString().replace(/[\s\-()]/g, '')
+      : target.trim().toLowerCase()
   const cleanOtp = otp.toString().trim()
 
   const otpDoc = await VerificationOtp.findOne({

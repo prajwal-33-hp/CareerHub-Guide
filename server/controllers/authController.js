@@ -222,11 +222,16 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
     lastSentAt: new Date(),
   })
 
-  res.json({
+  const responseData = {
     success: true,
     message: `A 6-digit verification code has been dispatched to ${normalizedEmail}. Please check your inbox.`,
     email: normalizedEmail,
-  })
+  }
+  if (process.env.NODE_ENV === 'development') {
+    responseData.devOtp = otpCode
+  }
+
+  res.json(responseData)
 })
 
 // @route   POST /api/auth/register
@@ -390,17 +395,26 @@ const forgotPassword = asyncHandler(async (req, res) => {
   user.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
   await user.save()
 
-  // Dispatch real email via SMTP non-blockingly in background
-  sendPasswordResetEmail(user.email, resetCode, user.name || 'User').catch((err) =>
-    console.error('[EmailService] Failed to send password reset email:', err.message)
-  )
+  // Dispatch real email via SMTP
+  const dispatch = await sendPasswordResetEmail(user.email, resetCode, user.name || 'User')
+  if (!dispatch.success) {
+    res.status(400)
+    throw new Error(
+      dispatch.error ||
+        'Unable to deliver verification code to this email. Please ensure your email is active and try again.'
+    )
+  }
 
-  // Respond immediately so user sees step 2 in <50ms with zero lag
-  res.json({
+  const responseData = {
     success: true,
     message: `A 6-digit verification code has been sent to ${user.email}. Please check your inbox.`,
     email: user.email,
-  })
+  }
+  if (process.env.NODE_ENV === 'development') {
+    responseData.resetCode = resetCode
+  }
+
+  res.json(responseData)
 })
 
 // @route   POST /api/auth/reset-password

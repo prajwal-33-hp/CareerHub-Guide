@@ -4,6 +4,46 @@ let brevoTransporter = null
 let gmailTransporter = null
 let etherealTransporter = null
 
+// Initializes Gmail SMTP Transporter with persistent socket pooling and adequate timeouts
+function getGmailTransporter() {
+  if (gmailTransporter) return gmailTransporter
+
+  const gmailUser = (process.env.GMAIL_USER || (!process.env.SMTP_HOST?.includes('brevo') ? process.env.SMTP_USER : null))?.trim()
+  const gmailPass = (process.env.GMAIL_APP_PASS || (!process.env.SMTP_HOST?.includes('brevo') ? process.env.SMTP_PASS : null))?.replace(/\s+/g, '')
+
+  if (gmailUser && gmailPass) {
+    gmailTransporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      pool: true,
+      maxConnections: 5,
+      maxMessages: Infinity,
+      rateDelta: 1000,
+      rateLimit: 5,
+      connectionTimeout: 10000, // 10s timeout to allow complete TLS handshake
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+      auth: {
+        user: gmailUser,
+        pass: gmailPass,
+      },
+    })
+    console.log(`[EmailService] Primary Gmail SMTP relay active (${gmailUser})`)
+
+    // Pre-warm the pool in background immediately
+    gmailTransporter.verify().then(() => {
+      console.log(`[EmailService] ⚡ Gmail SMTP pool pre-warmed for instant sub-3s delivery.`)
+    }).catch((err) => {
+      console.warn(`[EmailService] Pre-warm check: ${err.message}`)
+    })
+  }
+  return gmailTransporter
+}
+
+// Auto-initialize transporter on server start
+setTimeout(getGmailTransporter, 500)
+
 // Initializes high-speed Brevo (Sendinblue) Transporter
 function getBrevoTransporter() {
   if (brevoTransporter) return brevoTransporter
@@ -19,45 +59,17 @@ function getBrevoTransporter() {
       pool: true,
       maxConnections: 5,
       maxMessages: 100,
-      connectionTimeout: 2500, // 2.5s rapid failover timeout
-      greetingTimeout: 2500,
-      socketTimeout: 4000,
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 8000,
       auth: {
         user: brevoUser,
         pass: brevoKey,
       },
     })
-    console.log(`[EmailService] Primary Brevo high-speed relay active (${brevoUser})`)
+    console.log(`[EmailService] Secondary Brevo relay active (${brevoUser})`)
   }
   return brevoTransporter
-}
-
-// Initializes Gmail SMTP Transporter with persistent socket pooling
-function getGmailTransporter() {
-  if (gmailTransporter) return gmailTransporter
-
-  const gmailUser = (process.env.GMAIL_USER || (!process.env.SMTP_HOST?.includes('brevo') ? process.env.SMTP_USER : null))?.trim()
-  const gmailPass = (process.env.GMAIL_APP_PASS || (!process.env.SMTP_HOST?.includes('brevo') ? process.env.SMTP_PASS : null))?.replace(/\s+/g, '')
-
-  if (gmailUser && gmailPass) {
-    gmailTransporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      pool: true,
-      maxConnections: 5,
-      maxMessages: 100,
-      connectionTimeout: 3000,
-      greetingTimeout: 3000,
-      socketTimeout: 5000,
-      auth: {
-        user: gmailUser,
-        pass: gmailPass,
-      },
-    })
-    console.log(`[EmailService] Secondary Gmail SMTP relay active (${gmailUser})`)
-  }
-  return gmailTransporter
 }
 
 // Initializes Ethereal dev fallback
@@ -110,7 +122,7 @@ function isNonExistentEmailError(err) {
   )
 }
 
-// Utility to dispatch email with automatic failover (Gmail / Brevo -> Ethereal)
+// Utility to dispatch email with automatic failover (Gmail -> Brevo -> Ethereal)
 async function sendEmail({ to, subject, html, text }) {
   const fromAddress =
     process.env.EMAIL_FROM ||
@@ -146,7 +158,7 @@ async function sendEmail({ to, subject, html, text }) {
           error: `The email address "${to}" does not exist in real life. Please check for typos or use an active email account.`,
         }
       }
-      console.warn(`[EmailService] Gmail delivery failed (${err.message}). Attempting Brevo...`)
+      console.warn(`[EmailService] Gmail delivery failed (${err.message}). Attempting secondary transporter...`)
     }
   }
 
@@ -197,6 +209,7 @@ async function sendEmail({ to, subject, html, text }) {
  * Send 6-Digit Email Verification Code for User Registration / Signup
  */
 async function sendSignupOtpEmail(toEmail, otpCode, recipientName = 'User') {
+  console.log(`🔑 [OTP DISPATCH - SIGNUP] Target: ${toEmail} | Code: ${otpCode}`)
   const subject = `Your CareerHub Account Verification Code: ${otpCode}`
   const html = `
     <!DOCTYPE html>
@@ -244,6 +257,7 @@ async function sendSignupOtpEmail(toEmail, otpCode, recipientName = 'User') {
  * Send 6-Digit OTP Verification Email for Recruiter Onboarding
  */
 async function sendOtpEmail(toEmail, otpCode, recipientName = 'Recruiter') {
+  console.log(`🔑 [OTP DISPATCH - RECRUITER WORK EMAIL] Target: ${toEmail} | Code: ${otpCode}`)
   const subject = `Your CareerHub Verification Code: ${otpCode}`
   const html = `
     <!DOCTYPE html>
@@ -291,6 +305,7 @@ async function sendOtpEmail(toEmail, otpCode, recipientName = 'Recruiter') {
  * Send Phone Verification OTP to user's registered Email
  */
 async function sendPhoneOtpEmail({ toEmail, phoneNumber, otp, recipientName = 'Recruiter' }) {
+  console.log(`🔑 [OTP DISPATCH - RECRUITER PHONE] Phone: ${phoneNumber} | Target Email: ${toEmail} | Code: ${otp}`)
   const subject = `Your Mobile Phone (${phoneNumber}) Verification Code: ${otp}`
   const html = `
     <!DOCTYPE html>
@@ -434,6 +449,7 @@ async function sendApplicationApprovedEmail(toEmail, recipientName, companyName)
  * Send 6-Digit Password Reset OTP Email
  */
 async function sendPasswordResetEmail(toEmail, resetCode, recipientName = 'User') {
+  console.log(`🔑 [OTP DISPATCH - PASSWORD RESET] Target: ${toEmail} | Code: ${resetCode}`)
   const subject = `Your CareerHub Password Reset Code: ${resetCode}`
   const html = `
     <!DOCTYPE html>

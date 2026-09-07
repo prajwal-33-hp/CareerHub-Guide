@@ -429,9 +429,16 @@ export default function Login() {
         ) : (
           <form onSubmit={handleConfirmResetPassword} className="space-y-4">
             <p className="text-xs text-ink-soft">
-              Account verified for <span className="font-semibold text-ink">{forgotEmail}</span>.
-              Enter the 6-digit code and choose your new password.
+              A 6-digit verification code was dispatched to <span className="font-semibold text-ink">{forgotEmail}</span>.
+              Please check your inbox (and Spam/Promotions folder):
             </p>
+
+            {testResetCode && (
+              <div className="rounded-lg bg-signal/15 border border-signal/40 p-2 text-center text-xs">
+                <span className="text-ink-soft">Dev Code: </span>
+                <span className="font-mono font-bold text-ink tracking-widest">{testResetCode}</span>
+              </div>
+            )}
 
             {forgotError && (
               <div className="rounded-lg border border-danger/20 bg-danger/10 p-2.5 text-xs text-danger">
@@ -460,10 +467,12 @@ export default function Login() {
               <input
                 type="text"
                 placeholder="123456"
+                maxLength={6}
                 value={forgotOtp}
-                onChange={(e) => setForgotOtp(e.target.value)}
+                onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 className="input-field font-mono text-center tracking-widest text-sm font-bold"
                 required
+                autoFocus
               />
             </div>
 
