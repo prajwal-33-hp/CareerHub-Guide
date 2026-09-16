@@ -415,23 +415,23 @@ export default function RecruiterApplications() {
                 <div className="col-span-2"><span className="text-ink-soft">Description:</span> <p className="text-ink mt-0.5 leading-relaxed">{selectedApp.companyDetails?.description}</p></div>
               </div>
 
-              {/* Horizontal Line */}
-              <hr className="border-t border-ink/10 my-3" />
+              {/* Horizontal Line Divider */}
+              <hr className="border-t-2 border-ink/15 my-4" />
 
               {/* Statutory Numbers */}
-              <div className="space-y-1.5 font-mono text-xs">
-                <p className="text-ink">
-                  <span className="font-semibold text-ink-soft">CIN : </span>
-                  <span className="font-bold text-ink select-all">{selectedApp.companyDetails?.cin || 'N/A'}</span>
-                </p>
-                <p className="text-ink">
-                  <span className="font-semibold text-ink-soft">GSTIN : </span>
-                  <span className="font-bold text-ink select-all">{selectedApp.companyDetails?.gstin || 'N/A'}</span>
-                </p>
-                <p className="text-ink">
-                  <span className="font-semibold text-ink-soft">LLPIN : </span>
-                  <span className="font-bold text-ink select-all">{selectedApp.companyDetails?.llpin || 'N/A'}</span>
-                </p>
+              <div className="flex flex-col space-y-2 w-full pt-1">
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-paper/60 border border-ink/10 text-xs font-mono">
+                  <span className="font-sans font-bold text-ink-soft shrink-0 min-w-[70px]">CIN :</span>
+                  <span className="font-bold text-ink select-all break-all">{selectedApp.companyDetails?.cin || 'N/A'}</span>
+                </div>
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-paper/60 border border-ink/10 text-xs font-mono">
+                  <span className="font-sans font-bold text-ink-soft shrink-0 min-w-[70px]">GSTIN :</span>
+                  <span className="font-bold text-ink select-all break-all">{selectedApp.companyDetails?.gstin || 'N/A'}</span>
+                </div>
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-paper/60 border border-ink/10 text-xs font-mono">
+                  <span className="font-sans font-bold text-ink-soft shrink-0 min-w-[70px]">LLPIN :</span>
+                  <span className="font-bold text-ink select-all break-all">{selectedApp.companyDetails?.llpin || 'N/A'}</span>
+                </div>
               </div>
             </div>
 
