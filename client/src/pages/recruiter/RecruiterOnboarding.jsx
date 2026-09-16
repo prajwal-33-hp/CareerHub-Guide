@@ -1083,19 +1083,19 @@ export default function RecruiterOnboarding() {
             </div>
 
             {/* Statutory Numbers in Review */}
-            <div className="mt-3 pt-3 border-t border-ink/10 space-y-2 text-xs font-mono">
-              <div className="flex flex-row items-center gap-2">
-                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px] shrink-0">CIN :</span>
+            <div className="mt-3 pt-3 border-t border-ink/10 space-y-1.5 text-xs font-mono">
+              <p className="text-ink">
+                <span className="font-semibold text-ink-soft">CIN : </span>
                 <span className="font-bold text-ink select-all">{cin || 'N/A'}</span>
-              </div>
-              <div className="flex flex-row items-center gap-2">
-                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px] shrink-0">GSTIN :</span>
+              </p>
+              <p className="text-ink">
+                <span className="font-semibold text-ink-soft">GSTIN : </span>
                 <span className="font-bold text-ink select-all">{gstin || 'N/A'}</span>
-              </div>
-              <div className="flex flex-row items-center gap-2">
-                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px] shrink-0">LLPIN :</span>
+              </p>
+              <p className="text-ink">
+                <span className="font-semibold text-ink-soft">LLPIN : </span>
                 <span className="font-bold text-ink select-all">{llpin || 'N/A'}</span>
-              </div>
+              </p>
             </div>
           </div>
 

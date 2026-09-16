@@ -269,19 +269,19 @@ export default function RecruiterApplications() {
                       </div>
                     </td>
 
-                    <td className="px-4 py-3.5 space-y-1.5 text-xs font-mono whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-sans text-[10px] font-bold text-ink-soft shrink-0">CIN :</span>
+                    <td className="px-4 py-3.5 space-y-1 text-xs font-mono whitespace-nowrap">
+                      <p>
+                        <span className="font-semibold text-ink-soft">CIN : </span>
                         <span className="font-bold text-ink select-all">{app.companyDetails?.cin || 'N/A'}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-sans text-[10px] font-bold text-ink-soft shrink-0">GSTIN :</span>
+                      </p>
+                      <p>
+                        <span className="font-semibold text-ink-soft">GSTIN : </span>
                         <span className="font-bold text-ink select-all">{app.companyDetails?.gstin || 'N/A'}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-sans text-[10px] font-bold text-ink-soft shrink-0">LLPIN :</span>
+                      </p>
+                      <p>
+                        <span className="font-semibold text-ink-soft">LLPIN : </span>
                         <span className="font-bold text-ink select-all">{app.companyDetails?.llpin || 'N/A'}</span>
-                      </div>
+                      </p>
                     </td>
 
                     <td className="px-4 py-3.5">
@@ -417,23 +417,23 @@ export default function RecruiterApplications() {
             </div>
 
             {/* Statutory Business Identifiers */}
-            <div className="rounded-2xl border border-ink/10 bg-paper/40 p-4 space-y-3">
+            <div className="rounded-2xl border border-ink/10 p-4 space-y-2">
               <h3 className="font-display text-xs font-bold text-ink uppercase tracking-wider text-ink-soft">
                 Statutory Business Identifiers
               </h3>
-              <div className="flex flex-col space-y-2.5 text-xs font-mono">
-                <div className="rounded-xl border border-ink/10 bg-white p-3 flex flex-row items-center gap-3">
-                  <span className="font-sans text-xs font-bold text-ink-soft min-w-[70px] shrink-0">CIN :</span>
-                  <span className="font-mono font-bold text-sm text-ink select-all tracking-wide">{selectedApp.companyDetails?.cin || 'N/A'}</span>
-                </div>
-                <div className="rounded-xl border border-ink/10 bg-white p-3 flex flex-row items-center gap-3">
-                  <span className="font-sans text-xs font-bold text-ink-soft min-w-[70px] shrink-0">GSTIN :</span>
-                  <span className="font-mono font-bold text-sm text-ink select-all tracking-wide">{selectedApp.companyDetails?.gstin || 'N/A'}</span>
-                </div>
-                <div className="rounded-xl border border-ink/10 bg-white p-3 flex flex-row items-center gap-3">
-                  <span className="font-sans text-xs font-bold text-ink-soft min-w-[70px] shrink-0">LLPIN :</span>
-                  <span className="font-mono font-bold text-sm text-ink select-all tracking-wide">{selectedApp.companyDetails?.llpin || 'N/A'}</span>
-                </div>
+              <div className="space-y-1.5 font-mono text-xs">
+                <p className="text-ink">
+                  <span className="font-semibold text-ink-soft">CIN : </span>
+                  <span className="font-bold text-ink select-all">{selectedApp.companyDetails?.cin || 'N/A'}</span>
+                </p>
+                <p className="text-ink">
+                  <span className="font-semibold text-ink-soft">GSTIN : </span>
+                  <span className="font-bold text-ink select-all">{selectedApp.companyDetails?.gstin || 'N/A'}</span>
+                </p>
+                <p className="text-ink">
+                  <span className="font-semibold text-ink-soft">LLPIN : </span>
+                  <span className="font-bold text-ink select-all">{selectedApp.companyDetails?.llpin || 'N/A'}</span>
+                </p>
               </div>
             </div>
 
