@@ -336,12 +336,13 @@ export default function RecruiterApplications() {
       )}
 
       {/* ========================================== */}
-      {/* DETAILED REVIEWS MODAL / INSPECTION DRAWER */}
+      {/* 4. RECRUITER VERIFICATION DOSSIER MODAL   */}
       {/* ========================================== */}
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title="Recruiter Verification Dossier"
+        size="xl"
       >
         {modalLoading || !selectedApp ? (
           <div className="flex min-h-[300px] items-center justify-center">
@@ -408,10 +409,30 @@ export default function RecruiterApplications() {
               </div>
 
               {/* Statutory Numbers */}
-              <div className="mt-3 pt-3 border-t border-ink/10 grid grid-cols-3 gap-2 text-xs">
-                <div><span className="text-[10px] text-ink-soft block">CIN</span><strong className="font-mono">{selectedApp.companyDetails?.cin || 'N/A'}</strong></div>
-                <div><span className="text-[10px] text-ink-soft block">GSTIN</span><strong className="font-mono">{selectedApp.companyDetails?.gstin || 'N/A'}</strong></div>
-                <div><span className="text-[10px] text-ink-soft block">LLPIN</span><strong className="font-mono">{selectedApp.companyDetails?.llpin || 'N/A'}</strong></div>
+              <div className="mt-4 pt-3.5 border-t border-ink/10">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft block mb-2">
+                  Statutory & Regulatory Identifiers
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="rounded-xl border border-ink/10 bg-paper/80 p-2.5 shadow-2xs">
+                    <span className="text-[10px] font-bold text-ink-soft block mb-0.5">Corporate ID (CIN)</span>
+                    <strong className="font-mono text-xs text-ink break-all select-all block">
+                      {selectedApp.companyDetails?.cin || 'Not Applicable'}
+                    </strong>
+                  </div>
+                  <div className="rounded-xl border border-ink/10 bg-paper/80 p-2.5 shadow-2xs">
+                    <span className="text-[10px] font-bold text-ink-soft block mb-0.5">GST Number (GSTIN)</span>
+                    <strong className="font-mono text-xs text-ink break-all select-all block">
+                      {selectedApp.companyDetails?.gstin || 'Not Applicable'}
+                    </strong>
+                  </div>
+                  <div className="rounded-xl border border-ink/10 bg-paper/80 p-2.5 shadow-2xs">
+                    <span className="text-[10px] font-bold text-ink-soft block mb-0.5">LLP ID (LLPIN)</span>
+                    <strong className="font-mono text-xs text-ink break-all select-all block">
+                      {selectedApp.companyDetails?.llpin || 'Not Applicable'}
+                    </strong>
+                  </div>
+                </div>
               </div>
             </div>
 
