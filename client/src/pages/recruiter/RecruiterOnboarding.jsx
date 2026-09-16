@@ -725,11 +725,12 @@ export default function RecruiterOnboarding() {
             </div>
 
             {/* Legal Identification Numbers */}
+            {/* Statutory Numbers */}
             <div className="sm:col-span-2 pt-2 border-t border-ink/10">
               <h3 className="font-display text-xs font-bold text-ink mb-3 uppercase tracking-wider text-ink-soft">
                 Statutory Business Identifiers (Any applicable)
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="flex flex-col space-y-3">
                 <div>
                   <label className="mb-1 block text-[11px] font-semibold text-ink">CIN (Corporate ID)</label>
                   <input
@@ -1078,6 +1079,22 @@ export default function RecruiterOnboarding() {
               <div>
                 <span className="text-ink-soft text-[11px] block">Company Type:</span>
                 <span className="font-semibold text-ink">{companyType}</span>
+              </div>
+            </div>
+
+            {/* Statutory Numbers in Review */}
+            <div className="mt-3 pt-3 border-t border-ink/10 space-y-2 text-xs font-mono">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px]">CIN :</span>
+                <span className="font-bold text-ink select-all break-all">{cin || 'N/A'}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px]">GSTIN :</span>
+                <span className="font-bold text-ink select-all break-all">{gstin || 'N/A'}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px]">LLPIN :</span>
+                <span className="font-bold text-ink select-all break-all">{llpin || 'N/A'}</span>
               </div>
             </div>
           </div>
