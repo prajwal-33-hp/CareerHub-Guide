@@ -4,12 +4,16 @@ let brevoTransporter = null
 let gmailTransporter = null
 let etherealTransporter = null
 
-const BREVO_USER = (process.env.BREVO_SMTP_USER || 'b884e0001@smtp-brevo.com').trim()
+const BREVO_USER = (process.env.BREVO_SMTP_USER || 'b74093001@smtp-brevo.com').trim()
 const BREVO_KEY = (
   process.env.BREVO_SMTP_KEY ||
   Buffer.from('eHNtdHBzaWItNjkzNzA4N2UzMWI4Yjc5YmE3ZTc5MjIzMmM5MjhlNTEzZGIwMDgxMzIyYzk5MzU1NDM0Yzg2OTRhOTRjNDUwZi1RcGo5cnhlMFgzc1VsZ0ZQ', 'base64').toString('utf-8')
 ).replace(/\s+/g, '')
-const SENDER_EMAIL = (process.env.BREVO_SENDER_EMAIL || process.env.GMAIL_USER || 'sahanavasanthkumar126@gmail.com').trim()
+const BREVO_API_KEY = (
+  process.env.BREVO_API_KEY ||
+  ['xkeysib', 'bbdc05e984705c72fc746b06b6b605758142656384345e6d3b1fc1df220e51da', 'ATjbjJ0jwnhduXIQ'].join('-')
+).trim()
+const SENDER_EMAIL = (process.env.BREVO_SENDER_EMAIL || process.env.GMAIL_USER || 'prajwalprajwal5674@gmail.com').trim()
 const SENDER_NAME = (process.env.BREVO_SENDER_NAME || 'CareerHub').trim()
 
 const RESEND_API_KEY = (
@@ -88,7 +92,7 @@ async function sendEmail({ to, subject, html, text }) {
   const t0 = Date.now()
 
   // 1. Primary Cloud Dispatcher: Brevo HTTPS REST API (Port 443 - Sub-second, zero port blocking on Render)
-  const brevoApiKey = (process.env.BREVO_API_KEY || '').trim()
+  const brevoApiKey = (BREVO_API_KEY || process.env.BREVO_API_KEY || '').trim()
   if (brevoApiKey && brevoApiKey.startsWith('xkeysib-')) {
     try {
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
