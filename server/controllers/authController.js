@@ -214,7 +214,6 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
     success: true,
     message: `A 6-digit verification code has been dispatched to ${normalizedEmail}. Please check your inbox.`,
     email: normalizedEmail,
-    previewOtp: otpCode,
   })
 })
 
@@ -388,7 +387,6 @@ const forgotPassword = asyncHandler(async (req, res) => {
     success: true,
     message: `A 6-digit verification code has been sent to ${user.email}. Please check your inbox.`,
     email: user.email,
-    previewOtp: resetCode,
   })
 })
 
