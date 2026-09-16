@@ -100,6 +100,19 @@ const submitApplication = asyncHandler(async (req, res) => {
     throw new Error('You are already an approved recruiter')
   }
 
+  // Check user and payload verification states
+  const user = await User.findById(req.user._id)
+  const isEmailVerified = Boolean(
+    req.body.verification?.emailVerified ||
+    user?.isEmailVerified ||
+    (application && application.verification?.emailVerified)
+  )
+  const isPhoneVerified = Boolean(
+    req.body.verification?.phoneVerified ||
+    user?.isPhoneVerified ||
+    (application && application.verification?.phoneVerified)
+  )
+
   if (application) {
     // Preserve prior verification flags if work email / phone didn't change
     const isEmailSame = application.applicantDetails?.workEmail === workEmail.toLowerCase().trim()
@@ -135,10 +148,10 @@ const submitApplication = asyncHandler(async (req, res) => {
     }
 
     application.verification = {
-      emailVerified: isEmailSame ? application.verification.emailVerified : false,
-      emailVerifiedAt: isEmailSame ? application.verification.emailVerifiedAt : null,
-      phoneVerified: isPhoneSame ? application.verification.phoneVerified : false,
-      phoneVerifiedAt: isPhoneSame ? application.verification.phoneVerifiedAt : null,
+      emailVerified: isEmailSame ? (isEmailVerified || application.verification.emailVerified) : isEmailVerified,
+      emailVerifiedAt: application.verification.emailVerifiedAt || (isEmailVerified ? new Date() : null),
+      phoneVerified: isPhoneSame ? (isPhoneVerified || application.verification.phoneVerified) : isPhoneVerified,
+      phoneVerifiedAt: application.verification.phoneVerifiedAt || (isPhoneVerified ? new Date() : null),
       domainMatched,
       companyVerified: false,
       relationshipVerified: Boolean(idBadgeUrl || application.applicantDetails?.idBadgeUrl),
@@ -177,8 +190,10 @@ const submitApplication = asyncHandler(async (req, res) => {
         registrationDocUrl: registrationDocUrl || '',
       },
       verification: {
-        emailVerified: false,
-        phoneVerified: false,
+        emailVerified: isEmailVerified,
+        emailVerifiedAt: isEmailVerified ? new Date() : null,
+        phoneVerified: isPhoneVerified,
+        phoneVerifiedAt: isPhoneVerified ? new Date() : null,
         domainMatched,
         companyVerified: false,
         relationshipVerified: Boolean(idBadgeUrl),

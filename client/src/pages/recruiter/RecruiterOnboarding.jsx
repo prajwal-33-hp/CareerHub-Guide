@@ -337,6 +337,10 @@ export default function RecruiterOnboarding() {
           gstin,
           registrationDocUrl,
         },
+        verification: {
+          emailVerified,
+          phoneVerified,
+        },
       }
 
       const { data } = await api.post('/recruiter-verification/apply', payload)
