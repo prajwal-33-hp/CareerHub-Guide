@@ -229,7 +229,6 @@ export default function RecruiterApplications() {
               </tr>
             ) : (
               applications.map((app) => {
-                const isDomainMatched = app.verification?.domainMatched
                 const isEmailVerified = app.verification?.emailVerified
                 const isPhoneVerified = app.verification?.phoneVerified
 
