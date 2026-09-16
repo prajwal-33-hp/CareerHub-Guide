@@ -5,7 +5,8 @@ const SIZE_MAP = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-xl',
-  xl: 'max-w-3xl',
+  xl: 'max-w-3xl sm:max-w-4xl',
+  '2xl': 'max-w-5xl',
 }
 
 export default function Modal({

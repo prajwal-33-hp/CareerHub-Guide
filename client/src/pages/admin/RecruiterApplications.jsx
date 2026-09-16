@@ -269,9 +269,19 @@ export default function RecruiterApplications() {
                       </div>
                     </td>
 
-                    <td className="px-4 py-3.5 space-y-0.5 text-[11px] font-mono">
-                      {app.companyDetails?.cin && <p className="text-ink">CIN: {app.companyDetails.cin}</p>}
-                      {app.companyDetails?.gstin && <p className="text-ink">GST: {app.companyDetails.gstin}</p>}
+                    <td className="px-4 py-3.5 space-y-1 text-[11px] font-mono">
+                      {app.companyDetails?.cin && (
+                        <p className="text-ink break-all">
+                          <span className="font-sans text-[9px] font-bold uppercase text-ink-soft mr-1">CIN:</span>
+                          {app.companyDetails.cin}
+                        </p>
+                      )}
+                      {app.companyDetails?.gstin && (
+                        <p className="text-ink break-all">
+                          <span className="font-sans text-[9px] font-bold uppercase text-ink-soft mr-1">GST:</span>
+                          {app.companyDetails.gstin}
+                        </p>
+                      )}
                       {!app.companyDetails?.cin && !app.companyDetails?.gstin && (
                         <span className="text-ink-soft italic text-[10px]">Not provided</span>
                       )}
