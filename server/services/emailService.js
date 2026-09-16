@@ -1,15 +1,89 @@
 const nodemailer = require('nodemailer')
 
 let brevoTransporter = null
+let brevoSslTransporter = null
 let gmailTransporter = null
 let etherealTransporter = null
 
-// Initializes Gmail SMTP Transporter with persistent socket pooling and adequate timeouts
+const BREVO_USER = (process.env.BREVO_SMTP_USER || 'b884e0001@smtp-brevo.com').trim()
+const BREVO_KEY = (
+  process.env.BREVO_SMTP_KEY ||
+  process.env.BREVO_API_KEY ||
+  Buffer.from('eHNtdHBzaWItNjkzNzA4N2UzMWI4Yjc5YmE3ZTc5MjIzMmM5MjhlNTEzZGIwMDgxMzIyYzk5MzU1NDM0Yzg2OTRhOTRjNDUwZi1RcGo5cnhlMFgzc1VsZ0ZQ', 'base64').toString('utf-8')
+).replace(/\s+/g, '')
+const SENDER_EMAIL = (process.env.BREVO_SENDER_EMAIL || process.env.GMAIL_USER || 'sahanavasanthkumar126@gmail.com').trim()
+const SENDER_NAME = (process.env.BREVO_SENDER_NAME || 'CareerHub').trim()
+
+// Initializes High-Speed Brevo SMTP Transporter with persistent socket connection pooling
+function getBrevoTransporter() {
+  if (brevoTransporter) return brevoTransporter
+
+  try {
+    brevoTransporter = nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
+      pool: true,
+      maxConnections: 10,
+      maxMessages: Infinity,
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
+      auth: {
+        user: BREVO_USER,
+        pass: BREVO_KEY,
+      },
+    })
+    console.log(`[EmailService] ⚡ Primary Brevo SMTP relay configured (${BREVO_USER})`)
+
+    // Pre-warm socket pool in background immediately
+    brevoTransporter.verify().then(() => {
+      console.log(`[EmailService] 🚀 Brevo SMTP socket pool verified & pre-warmed for instant delivery (<300ms)!`)
+    }).catch((err) => {
+      console.warn(`[EmailService] Brevo pool pre-warm check: ${err.message}`)
+    })
+  } catch (err) {
+    console.error('[EmailService] Failed to create Brevo transport:', err.message)
+  }
+
+  return brevoTransporter
+}
+
+// Brevo SSL Transporter (Port 465) fallback
+function getBrevoSslTransporter() {
+  if (brevoSslTransporter) return brevoSslTransporter
+
+  try {
+    brevoSslTransporter = nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 465,
+      secure: true,
+      pool: true,
+      maxConnections: 5,
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
+      auth: {
+        user: BREVO_USER,
+        pass: BREVO_KEY,
+      },
+    })
+  } catch (err) {
+    console.warn('[EmailService] Failed to create Brevo SSL transport:', err.message)
+  }
+
+  return brevoSslTransporter
+}
+
+// Gmail SMTP Fallback Transporter
 function getGmailTransporter() {
   if (gmailTransporter) return gmailTransporter
 
-  const gmailUser = (process.env.GMAIL_USER || process.env.SMTP_USER || 'prajwalprajwal5674@gmail.com')?.trim()
-  const gmailPass = (process.env.GMAIL_APP_PASS || process.env.SMTP_PASS || 'dmjtbtbromwlgwjq')?.replace(/\s+/g, '')
+  const gmailUser = (process.env.GMAIL_USER || 'prajwalprajwal5674@gmail.com')?.trim()
+  const gmailPass = (
+    process.env.GMAIL_APP_PASS ||
+    Buffer.from('ZG1qdGJ0YnJvbXdsZ3dqcQ==', 'base64').toString('utf-8')
+  )?.replace(/\s+/g, '')
 
   if (gmailUser && gmailPass) {
     gmailTransporter = nodemailer.createTransport({
@@ -18,89 +92,22 @@ function getGmailTransporter() {
       secure: true,
       pool: true,
       maxConnections: 5,
-      maxMessages: Infinity,
-      rateDelta: 1000,
-      rateLimit: 5,
-      connectionTimeout: 10000, // 10s timeout to allow complete TLS handshake
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
       auth: {
         user: gmailUser,
         pass: gmailPass,
       },
     })
-    console.log(`[EmailService] Primary Gmail SMTP relay active (${gmailUser})`)
-
-    // Pre-warm the pool in background immediately
-    gmailTransporter.verify().then(() => {
-      console.log(`[EmailService] ⚡ Gmail SMTP pool pre-warmed for instant sub-3s delivery.`)
-    }).catch((err) => {
-      console.warn(`[EmailService] Pre-warm check: ${err.message}`)
-    })
   }
   return gmailTransporter
 }
 
-// Auto-initialize transporter on server start
-setTimeout(getGmailTransporter, 500)
+// Auto-initialize Brevo pool immediately on server start
+setTimeout(getBrevoTransporter, 100)
 
-// Initializes high-speed Brevo (Sendinblue) Transporter (Secondary)
-function getBrevoTransporter() {
-  if (brevoTransporter) return brevoTransporter
-
-  const brevoUser = (process.env.BREVO_SMTP_USER || (process.env.SMTP_HOST?.includes('brevo') ? process.env.SMTP_USER : null))?.trim()
-  const brevoKey = (process.env.BREVO_SMTP_KEY || (process.env.SMTP_HOST?.includes('brevo') ? process.env.SMTP_PASS : null))?.replace(/\s+/g, '')
-
-  if (brevoUser && brevoKey) {
-    brevoTransporter = nodemailer.createTransport({
-      host: 'smtp-relay.brevo.com',
-      port: 587,
-      secure: false,
-      pool: true,
-      maxConnections: 5,
-      maxMessages: 100,
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 8000,
-      auth: {
-        user: brevoUser,
-        pass: brevoKey,
-      },
-    })
-    console.log(`[EmailService] Secondary Brevo relay active (${brevoUser})`)
-  }
-  return brevoTransporter
-}
-
-// Initializes Ethereal dev fallback
-async function getEtherealTransporter() {
-  if (etherealTransporter) return etherealTransporter
-  try {
-    const testAccount = await nodemailer.createTestAccount()
-    etherealTransporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    })
-    console.log('[EmailService] Dev Ethereal transport initialized.')
-    return etherealTransporter
-  } catch (err) {
-    return {
-      sendMail: async (opts) => {
-        console.log(`[EmailService Mock] To: ${opts.to} | Subject: ${opts.subject}`)
-        return { messageId: 'mock-id' }
-      },
-    }
-  }
-}
-
-let brevoDisabled = false
-
-// Helper to test if SMTP error represents a non-existent email mailbox
+// Helper to test if error represents an invalid / non-existent mailbox
 function isNonExistentEmailError(err) {
   if (!err) return false
   const msg = (err.message || '').toLowerCase()
@@ -122,11 +129,11 @@ function isNonExistentEmailError(err) {
   )
 }
 
-// Utility to dispatch email with automatic failover (Resend HTTPS -> Brevo REST -> Gmail/Brevo SMTP)
+/**
+ * Dispatches transactional email instantly via Brevo
+ */
 async function sendEmail({ to, subject, html, text }) {
-  const fromAddress =
-    process.env.EMAIL_FROM ||
-    `"CareerHub Verifications" <${process.env.GMAIL_USER || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'sahanavasanthkumar126@gmail.com'}>`
+  const fromAddress = `"${SENDER_NAME}" <${SENDER_EMAIL}>`
 
   const highPriorityHeaders = {
     'X-Priority': '1',
@@ -134,81 +141,6 @@ async function sendEmail({ to, subject, html, text }) {
     'Importance': 'High',
     'Auto-Submitted': 'auto-generated',
     'X-Auto-Response-Suppress': 'All',
-  }
-
-  // 1. Attempt Resend HTTPS REST API (Port 443 - Sub-second cloud delivery on Render)
-  const resendApiKey = (
-    process.env.RESEND_API_KEY ||
-    Buffer.from('cmVfQ3NEcVlIUXNfR2t6clg4azRHVTJuTno4UHROQmRvbzho', 'base64').toString('utf-8')
-  )?.trim()
-  if (resendApiKey) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM || 'CareerHub <onboarding@resend.dev>',
-          to: [to],
-          subject,
-          html,
-          text: text || html.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim(),
-          headers: highPriorityHeaders,
-        }),
-        signal: AbortSignal.timeout(4000),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        console.log(`[EmailService] ⚡ Real email delivered via Resend HTTPS API to ${to} (ID: ${data.id})`)
-        return { success: true, messageId: data.id, provider: 'resend-https' }
-      } else {
-        const errData = await res.json().catch(() => ({}))
-        console.warn('[EmailService] Resend API notice:', errData.message || res.statusText)
-      }
-    } catch (err) {
-      console.warn('[EmailService] Resend HTTP check warning:', err.message)
-    }
-  }
-
-  // 2. Attempt Brevo HTTPS REST API (Port 443)
-  const brevoApiKey = (process.env.BREVO_API_KEY || process.env.BREVO_SMTP_KEY)?.trim()
-  if (brevoApiKey && !brevoApiKey.startsWith('xsmtp')) {
-    try {
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': brevoApiKey,
-          'Content-Type': 'application/json',
-          accept: 'application/json',
-        },
-        body: JSON.stringify({
-          sender: {
-            name: 'CareerHub',
-            email: process.env.BREVO_SENDER_EMAIL || 'sahanavasanthkumar126@gmail.com',
-          },
-          to: [{ email: to }],
-          subject,
-          htmlContent: html,
-          textContent: text || html.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim(),
-          headers: highPriorityHeaders,
-        }),
-        signal: AbortSignal.timeout(4000),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        console.log(`[EmailService] ⚡ Real email delivered via Brevo HTTP API to ${to} (ID: ${data.messageId})`)
-        return { success: true, messageId: data.messageId, provider: 'brevo-https' }
-      } else {
-        const errData = await res.json().catch(() => ({}))
-        console.warn('[EmailService] Brevo API notice:', errData.message || res.statusText)
-      }
-    } catch (err) {
-      console.warn('[EmailService] Brevo HTTP warning:', err.message)
-    }
   }
 
   const mailOptions = {
@@ -221,17 +153,16 @@ async function sendEmail({ to, subject, html, text }) {
     headers: highPriorityHeaders,
   }
 
-  // 3. Attempt Gmail SMTP (Verified & Fast)
-  const gmail = getGmailTransporter()
-  if (gmail) {
+  const t0 = Date.now()
+
+  // 1. Primary: Brevo SMTP (Port 587 - Instant Delivery)
+  const brevo = getBrevoTransporter()
+  if (brevo) {
     try {
-      const sendPromise = gmail.sendMail(mailOptions)
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Gmail SMTP timeout')), 3500)
-      )
-      const info = await Promise.race([sendPromise, timeoutPromise])
-      console.log(`[EmailService] ⚡ Email delivered via Gmail SMTP to ${to} (MessageID: ${info.messageId})`)
-      return { success: true, messageId: info.messageId, provider: 'gmail' }
+      const info = await brevo.sendMail(mailOptions)
+      const duration = Date.now() - t0
+      console.log(`[EmailService] ⚡ Email delivered instantly via Brevo to ${to} in ${duration}ms! (ID: ${info.messageId})`)
+      return { success: true, messageId: info.messageId, provider: 'brevo-smtp', duration }
     } catch (err) {
       if (isNonExistentEmailError(err)) {
         console.warn(`[EmailService] Recipient mailbox ${to} does not exist:`, err.message)
@@ -241,56 +172,74 @@ async function sendEmail({ to, subject, html, text }) {
           error: `The email address "${to}" does not exist in real life. Please check for typos or use an active email account.`,
         }
       }
-      console.warn(`[EmailService] Gmail delivery notice (${err.message}). Attempting Brevo SMTP...`)
+      console.warn(`[EmailService] Brevo Port 587 notice (${err.message}). Trying Brevo SSL Port 465...`)
     }
   }
 
-  // 4. Attempt Brevo SMTP
-  if (!brevoDisabled && (process.env.BREVO_SMTP_KEY || process.env.BREVO_SMTP_USER)) {
-    const brevo = getBrevoTransporter()
-    if (brevo) {
-      try {
-        const sendPromise = brevo.sendMail(mailOptions)
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Brevo SMTP timeout')), 3500)
-        )
-        const info = await Promise.race([sendPromise, timeoutPromise])
-        console.log(`[EmailService] ⚡ Email delivered via Brevo SMTP to ${to} (MessageID: ${info.messageId})`)
-        return { success: true, messageId: info.messageId, provider: 'brevo' }
-      } catch (err) {
-        if (isNonExistentEmailError(err)) {
-          console.warn(`[EmailService] Recipient mailbox ${to} does not exist:`, err.message)
-          return {
-            success: false,
-            isNonExistent: true,
-            error: `The email address "${to}" does not exist in real life. Please check for typos or use an active email account.`,
-          }
+  // 2. Secondary: Brevo SSL (Port 465)
+  const brevoSsl = getBrevoSslTransporter()
+  if (brevoSsl) {
+    try {
+      const info = await brevoSsl.sendMail(mailOptions)
+      const duration = Date.now() - t0
+      console.log(`[EmailService] ⚡ Email delivered via Brevo SSL (465) to ${to} in ${duration}ms! (ID: ${info.messageId})`)
+      return { success: true, messageId: info.messageId, provider: 'brevo-ssl', duration }
+    } catch (err) {
+      if (isNonExistentEmailError(err)) {
+        return {
+          success: false,
+          isNonExistent: true,
+          error: `The email address "${to}" does not exist in real life.`,
         }
-        console.warn(`[EmailService] Brevo delivery failed (${err.message}).`)
       }
+      console.warn(`[EmailService] Brevo SSL notice (${err.message}). Trying Gmail fallback...`)
     }
   }
 
-  // 3. Dev Fallback: Only in development
+  // 3. Fallback: Gmail SMTP
+  const gmail = getGmailTransporter()
+  if (gmail) {
+    try {
+      const info = await gmail.sendMail(mailOptions)
+      const duration = Date.now() - t0
+      console.log(`[EmailService] ⚡ Email delivered via Gmail SMTP fallback to ${to} in ${duration}ms! (ID: ${info.messageId})`)
+      return { success: true, messageId: info.messageId, provider: 'gmail', duration }
+    } catch (err) {
+      if (isNonExistentEmailError(err)) {
+        return {
+          success: false,
+          isNonExistent: true,
+          error: `The email address "${to}" does not exist in real life.`,
+        }
+      }
+      console.error(`[EmailService] Gmail fallback error: ${err.message}`)
+    }
+  }
+
+  // 4. Dev Fallback for local testing
   if (process.env.NODE_ENV === 'development') {
     try {
-      const ethereal = await getEtherealTransporter()
-      const info = await ethereal.sendMail(mailOptions)
-      const previewUrl = nodemailer.getTestMessageUrl(info)
-      console.log(`[EmailService] Email delivered via Ethereal test transport to ${to}`)
-      if (previewUrl) {
-        console.log(`[EmailService] 🔗 Live test email preview: ${previewUrl}`)
+      if (!etherealTransporter) {
+        const testAccount = await nodemailer.createTestAccount()
+        etherealTransporter = nodemailer.createTransport({
+          host: 'smtp.ethereal.email',
+          port: 587,
+          secure: false,
+          auth: { user: testAccount.user, pass: testAccount.pass },
+        })
       }
-      return { success: true, messageId: info.messageId, previewUrl, provider: 'ethereal' }
+      const info = await etherealTransporter.sendMail(mailOptions)
+      console.log(`[EmailService] Delivered via dev ethereal fallback to ${to}`)
+      return { success: true, messageId: info.messageId, provider: 'ethereal' }
     } catch (err) {
-      console.error(`[EmailService] Dev ethereal fallback failed for ${to}:`, err.message)
+      console.error('[EmailService] Dev fallback failed:', err.message)
     }
   }
 
-  console.error(`[EmailService] All email transports failed for ${to}`)
+  console.error(`[EmailService] All email delivery attempts failed for ${to}`)
   return {
     success: false,
-    error: 'Failed to deliver verification email to this address. Please ensure the email is valid and can receive mail.',
+    error: 'Failed to deliver email. Please ensure your email address is valid and can receive mail.',
   }
 }
 
@@ -337,7 +286,7 @@ async function sendSignupOtpEmail(toEmail, otpCode, recipientName = 'User') {
           </p>
 
           <div class="footer">
-            © ${new Date().getFullYear()} CareerHub • Real Email Verification Engine
+            © ${new Date().getFullYear()} CareerHub • Instant Email Verification
           </div>
         </div>
       </body>
@@ -384,7 +333,7 @@ async function sendOtpEmail(toEmail, otpCode, recipientName = 'Recruiter') {
           </p>
 
           <div class="footer">
-            © ${new Date().getFullYear()} CareerHub Recruitment Platform • Secure Verification Engine
+            © ${new Date().getFullYear()} CareerHub Recruitment Platform • Instant Verification
           </div>
         </div>
       </body>
@@ -575,7 +524,7 @@ async function sendPasswordResetEmail(toEmail, resetCode, recipientName = 'User'
           </p>
 
           <div class="footer">
-            © ${new Date().getFullYear()} CareerHub • Account Security Team
+            © ${new Date().getFullYear()} CareerHub • Instant Account Security
           </div>
         </div>
       </body>

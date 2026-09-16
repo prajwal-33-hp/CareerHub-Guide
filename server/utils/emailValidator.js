@@ -245,12 +245,12 @@ async function validateRealEmail(email) {
   // 2. Check for dummy / placeholder handles
   const isDummy =
     DUMMY_LOCAL_PARTS.has(localPart.toLowerCase()) ||
-    /^(test|fake|dummy|temp|sample|example|asdf|qwerty|zxcv|user\d+|prajju123)/i.test(localPart)
+    /^(fake|dummy|invalid|nobody|null|undefined)@/i.test(normalized)
 
   if (isDummy) {
     return {
       valid: false,
-      error: `"${localPart}" appears to be a placeholder or test handle. Please use your genuine, active personal or work email address.`,
+      error: `"${localPart}" appears to be a placeholder handle. Please use your active email address.`,
     }
   }
 
