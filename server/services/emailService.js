@@ -122,25 +122,111 @@ function isNonExistentEmailError(err) {
   )
 }
 
-// Utility to dispatch email with automatic failover (Gmail / Brevo -> Ethereal)
+// Utility to dispatch email with automatic failover (Resend HTTPS -> Brevo REST -> Gmail/Brevo SMTP)
 async function sendEmail({ to, subject, html, text }) {
   const fromAddress =
     process.env.EMAIL_FROM ||
-    `"CareerHub Verifications" <${process.env.GMAIL_USER || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'no-reply@careerhub.com'}>`
+    `"CareerHub Verifications" <${process.env.GMAIL_USER || process.env.SMTP_USER || process.env.BREVO_SMTP_USER || 'sahanavasanthkumar126@gmail.com'}>`
+
+  const highPriorityHeaders = {
+    'X-Priority': '1',
+    'X-MSMail-Priority': 'High',
+    'Importance': 'High',
+    'Auto-Submitted': 'auto-generated',
+    'X-Auto-Response-Suppress': 'All',
+  }
+
+  // 1. Attempt Resend HTTPS REST API (Port 443 - Sub-second cloud delivery on Render)
+  const resendApiKey = process.env.RESEND_API_KEY?.trim()
+  if (resendApiKey) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM || 'CareerHub <onboarding@resend.dev>',
+          to: [to],
+          subject,
+          html,
+          text: text || html.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim(),
+          headers: highPriorityHeaders,
+        }),
+        signal: AbortSignal.timeout(4000),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        console.log(`[EmailService] ⚡ Real email delivered via Resend HTTPS API to ${to} (ID: ${data.id})`)
+        return { success: true, messageId: data.id, provider: 'resend-https' }
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        console.warn('[EmailService] Resend API notice:', errData.message || res.statusText)
+      }
+    } catch (err) {
+      console.warn('[EmailService] Resend HTTP check warning:', err.message)
+    }
+  }
+
+  // 2. Attempt Brevo HTTPS REST API (Port 443)
+  const brevoApiKey = (process.env.BREVO_API_KEY || process.env.BREVO_SMTP_KEY)?.trim()
+  if (brevoApiKey && !brevoApiKey.startsWith('xsmtp')) {
+    try {
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey,
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        body: JSON.stringify({
+          sender: {
+            name: 'CareerHub',
+            email: process.env.BREVO_SENDER_EMAIL || 'sahanavasanthkumar126@gmail.com',
+          },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+          textContent: text || html.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim(),
+          headers: highPriorityHeaders,
+        }),
+        signal: AbortSignal.timeout(4000),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        console.log(`[EmailService] ⚡ Real email delivered via Brevo HTTP API to ${to} (ID: ${data.messageId})`)
+        return { success: true, messageId: data.messageId, provider: 'brevo-https' }
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        console.warn('[EmailService] Brevo API notice:', errData.message || res.statusText)
+      }
+    } catch (err) {
+      console.warn('[EmailService] Brevo HTTP warning:', err.message)
+    }
+  }
 
   const mailOptions = {
     from: fromAddress,
     to,
     subject,
-    text: text || html.replace(/<[^>]*>?/gm, ''),
+    text: text || html.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim(),
     html,
+    priority: 'high',
+    headers: highPriorityHeaders,
   }
 
-  // 1. Attempt Gmail SMTP (Verified & Fast)
+  // 3. Attempt Gmail SMTP (Verified & Fast)
   const gmail = getGmailTransporter()
   if (gmail) {
     try {
-      const info = await gmail.sendMail(mailOptions)
+      const sendPromise = gmail.sendMail(mailOptions)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Gmail SMTP timeout')), 3500)
+      )
+      const info = await Promise.race([sendPromise, timeoutPromise])
       console.log(`[EmailService] ⚡ Email delivered via Gmail SMTP to ${to} (MessageID: ${info.messageId})`)
       return { success: true, messageId: info.messageId, provider: 'gmail' }
     } catch (err) {
@@ -152,17 +238,21 @@ async function sendEmail({ to, subject, html, text }) {
           error: `The email address "${to}" does not exist in real life. Please check for typos or use an active email account.`,
         }
       }
-      console.warn(`[EmailService] Gmail delivery failed (${err.message}). Attempting Brevo...`)
+      console.warn(`[EmailService] Gmail delivery notice (${err.message}). Attempting Brevo SMTP...`)
     }
   }
 
-  // 2. Attempt Brevo (if configured and not marked disabled)
+  // 4. Attempt Brevo SMTP
   if (!brevoDisabled && (process.env.BREVO_SMTP_KEY || process.env.BREVO_SMTP_USER)) {
     const brevo = getBrevoTransporter()
     if (brevo) {
       try {
-        const info = await brevo.sendMail(mailOptions)
-        console.log(`[EmailService] ⚡ Email delivered via Brevo to ${to} (MessageID: ${info.messageId})`)
+        const sendPromise = brevo.sendMail(mailOptions)
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Brevo SMTP timeout')), 3500)
+        )
+        const info = await Promise.race([sendPromise, timeoutPromise])
+        console.log(`[EmailService] ⚡ Email delivered via Brevo SMTP to ${to} (MessageID: ${info.messageId})`)
         return { success: true, messageId: info.messageId, provider: 'brevo' }
       } catch (err) {
         if (isNonExistentEmailError(err)) {
@@ -173,8 +263,7 @@ async function sendEmail({ to, subject, html, text }) {
             error: `The email address "${to}" does not exist in real life. Please check for typos or use an active email account.`,
           }
         }
-        console.warn(`[EmailService] Brevo delivery failed (${err.message}). Disabling Brevo for subsequent calls.`)
-        brevoDisabled = true
+        console.warn(`[EmailService] Brevo delivery failed (${err.message}).`)
       }
     }
   }

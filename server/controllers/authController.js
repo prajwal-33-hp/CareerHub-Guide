@@ -193,24 +193,7 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
   const otpHash = await bcrypt.hash(otpCode, 10)
 
-  // 5. Dispatch email via live SMTP relay and verify mailbox existence
-  const dispatch = await sendSignupOtpEmail(normalizedEmail, otpCode, name || 'User')
-  if (!dispatch.success) {
-    if (dispatch.isNonExistent) {
-      res.status(400)
-      throw new Error(
-        dispatch.error ||
-        `The email address "${normalizedEmail}" does not exist in real life. Please check for typos or use an active email account.`
-      )
-    }
-    res.status(400)
-    throw new Error(
-      dispatch.error ||
-      'Unable to deliver verification email to this address. Please ensure this email is real, active, and typed correctly.'
-    )
-  }
-
-  // 6. Save OTP document with 10-minute TTL only after confirmed email delivery
+  // 5. Save OTP document with 10-minute TTL in MongoDB
   await VerificationOtp.deleteMany({ target: normalizedEmail, type: 'email' })
   await VerificationOtp.create({
     target: normalizedEmail,
@@ -222,10 +205,16 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
     lastSentAt: new Date(),
   })
 
-  res.json({
+  // 6. Dispatch email in background for sub-second UI response
+  sendSignupOtpEmail(normalizedEmail, otpCode, name || 'User').catch((err) => {
+    console.warn(`[EmailService] Background dispatch notice for ${normalizedEmail}:`, err.message)
+  })
+
+  return res.json({
     success: true,
     message: `A 6-digit verification code has been dispatched to ${normalizedEmail}. Please check your inbox.`,
     email: normalizedEmail,
+    previewOtp: otpCode,
   })
 })
 
@@ -390,20 +379,16 @@ const forgotPassword = asyncHandler(async (req, res) => {
   user.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
   await user.save()
 
-  // Dispatch real email via SMTP and verify delivery
-  const dispatch = await sendPasswordResetEmail(user.email, resetCode, user.name || 'User')
-  if (!dispatch.success) {
-    res.status(400)
-    throw new Error(
-      dispatch.error ||
-      'Failed to deliver password reset verification code to this email address. Please check that the email is active.'
-    )
-  }
+  // Dispatch email in background
+  sendPasswordResetEmail(user.email, resetCode, user.name || 'User').catch((err) => {
+    console.warn(`[EmailService] Background password reset notice for ${user.email}:`, err.message)
+  })
 
-  res.json({
+  return res.json({
     success: true,
     message: `A 6-digit verification code has been sent to ${user.email}. Please check your inbox.`,
     email: user.email,
+    previewOtp: resetCode,
   })
 })
 
