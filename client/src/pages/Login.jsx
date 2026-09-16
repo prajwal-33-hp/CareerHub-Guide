@@ -109,7 +109,7 @@ export default function Login() {
 
     try {
       const { data } = await api.post('/auth/forgot-password', { email: forgotEmail.trim() })
-      if (data.resetCode) setTestResetCode(data.resetCode)
+      if (data.resetCode || data.previewOtp) setTestResetCode(data.resetCode || data.previewOtp)
       setForgotStep(2)
       setResendTimer(30)
       showToast(`Verification code sent to ${forgotEmail.trim()}!`, 'success')
@@ -127,7 +127,7 @@ export default function Login() {
     setForgotLoading(true)
     try {
       const { data } = await api.post('/auth/forgot-password', { email: forgotEmail.trim() })
-      if (data.resetCode) setTestResetCode(data.resetCode)
+      if (data.resetCode || data.previewOtp) setTestResetCode(data.resetCode || data.previewOtp)
       setResendTimer(30)
       showToast(`New verification code sent to ${forgotEmail.trim()}!`, 'success')
     } catch (err) {
@@ -464,6 +464,20 @@ export default function Login() {
                 className="input-field font-mono text-center tracking-widest text-sm font-bold"
                 required
               />
+              {testResetCode && (
+                <div className="mt-2 flex items-center justify-between rounded-lg bg-signal/15 border border-signal/30 px-3 py-1.5 text-[11px] text-ink animate-fadeIn">
+                  <span className="font-medium text-ink-soft">
+                    Code: <strong className="font-mono text-ink font-bold text-xs">{testResetCode}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setForgotOtp(testResetCode)}
+                    className="text-signal-dark font-bold hover:underline cursor-pointer ml-2 text-[11px]"
+                  >
+                    ⚡ Auto-fill
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>

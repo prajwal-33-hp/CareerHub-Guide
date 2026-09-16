@@ -56,6 +56,7 @@ export default function Register() {
   const [resendTimer, setResendTimer] = useState(0)
   const [otpEmail, setOtpEmail] = useState('')
   const [otpCode, setOtpCode] = useState('')
+  const [previewOtp, setPreviewOtp] = useState('')
 
   // Live Email Real-World Existence Verification State
   const [emailCheckState, setEmailCheckState] = useState({
@@ -173,6 +174,9 @@ export default function Register() {
       const res = await api.post('/auth/send-signup-otp', { email, name })
       setOtpSent(true)
       setOtpEmail(email)
+      if (res.data.previewOtp) {
+        setPreviewOtp(res.data.previewOtp)
+      }
       setResendTimer(60)
       showToast(res.data.message || `Verification code sent to ${email}`, 'success')
       return true
@@ -668,6 +672,20 @@ export default function Register() {
                     autoFocus
                   />
                 </div>
+                {previewOtp && (
+                  <div className="mt-2 flex items-center justify-between rounded-lg bg-signal/15 border border-signal/30 px-3 py-1.5 text-[11px] text-ink animate-fadeIn">
+                    <span className="font-medium text-ink-soft">
+                      Code: <strong className="font-mono text-ink font-bold text-xs">{previewOtp}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOtpCode(previewOtp)}
+                      className="text-signal-dark font-bold hover:underline cursor-pointer ml-2 text-[11px]"
+                    >
+                      ⚡ Auto-fill
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between text-[11px] pt-1">
