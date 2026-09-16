@@ -1084,17 +1084,17 @@ export default function RecruiterOnboarding() {
 
             {/* Statutory Numbers in Review */}
             <div className="mt-3 pt-3 border-t border-ink/10 space-y-2 text-xs font-mono">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1">
-                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px]">CIN :</span>
-                <span className="font-bold text-ink select-all break-all">{cin || 'N/A'}</span>
+              <div className="flex flex-row items-center gap-2">
+                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px] shrink-0">CIN :</span>
+                <span className="font-bold text-ink select-all">{cin || 'N/A'}</span>
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1">
-                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px]">GSTIN :</span>
-                <span className="font-bold text-ink select-all break-all">{gstin || 'N/A'}</span>
+              <div className="flex flex-row items-center gap-2">
+                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px] shrink-0">GSTIN :</span>
+                <span className="font-bold text-ink select-all">{gstin || 'N/A'}</span>
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1">
-                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px]">LLPIN :</span>
-                <span className="font-bold text-ink select-all break-all">{llpin || 'N/A'}</span>
+              <div className="flex flex-row items-center gap-2">
+                <span className="font-sans text-[11px] font-bold text-ink-soft min-w-[70px] shrink-0">LLPIN :</span>
+                <span className="font-bold text-ink select-all">{llpin || 'N/A'}</span>
               </div>
             </div>
           </div>
