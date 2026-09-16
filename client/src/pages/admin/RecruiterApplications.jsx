@@ -399,9 +399,9 @@ export default function RecruiterApplications() {
             </div>
 
             {/* Company Profile */}
-            <div className="rounded-2xl border border-ink/10 p-4 space-y-2">
+            <div className="rounded-2xl border border-ink/10 p-4 space-y-3">
               <h3 className="font-display text-xs font-bold text-ink uppercase tracking-wider text-ink-soft">
-                Company Information
+                Company & Statutory Entity
               </h3>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="col-span-2"><span className="text-ink-soft">Legal Name:</span> <strong className="text-ink">{selectedApp.companyDetails?.legalName}</strong></div>
@@ -414,13 +414,11 @@ export default function RecruiterApplications() {
                 <div className="col-span-2"><span className="text-ink-soft">Address:</span> <span className="text-ink">{selectedApp.companyDetails?.businessAddress}</span></div>
                 <div className="col-span-2"><span className="text-ink-soft">Description:</span> <p className="text-ink mt-0.5 leading-relaxed">{selectedApp.companyDetails?.description}</p></div>
               </div>
-            </div>
 
-            {/* Statutory Business Identifiers */}
-            <div className="rounded-2xl border border-ink/10 p-4 space-y-2">
-              <h3 className="font-display text-xs font-bold text-ink uppercase tracking-wider text-ink-soft">
-                Statutory Business Identifiers
-              </h3>
+              {/* Horizontal Line */}
+              <hr className="border-t border-ink/10 my-3" />
+
+              {/* Statutory Numbers */}
               <div className="space-y-1.5 font-mono text-xs">
                 <p className="text-ink">
                   <span className="font-semibold text-ink-soft">CIN : </span>
