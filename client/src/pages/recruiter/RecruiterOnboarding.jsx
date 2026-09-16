@@ -838,37 +838,6 @@ export default function RecruiterOnboarding() {
             <span className="badge bg-signal/20 text-ink font-bold">Step 3 of 4</span>
           </div>
 
-          {/* Domain Match Analysis Card */}
-          <div
-            className={`mb-6 rounded-2xl border p-4 text-xs transition ${
-              domainAnalysis.matched
-                ? 'border-emerald-500/30 bg-emerald-50/70 text-emerald-900'
-                : 'border-amber-500/30 bg-amber-50/70 text-amber-900'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <div
-                className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl font-bold ${
-                  domainAnalysis.matched ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
-                }`}
-              >
-                {domainAnalysis.matched ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-              </div>
-              <div className="flex-1">
-                <p className="font-bold text-sm">
-                  {domainAnalysis.matched
-                    ? 'Corporate Domain Match Verified'
-                    : 'Domain Mismatch or Custom Verification Required'}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed opacity-90">
-                  {domainAnalysis.matched
-                    ? `Your work email domain (${domainAnalysis.emailDomain}) matches the company domain (${domainAnalysis.webDomain}). This speeds up your admin approval.`
-                    : `Your work email domain (${domainAnalysis.emailDomain || 'N/A'}) does not match the company website (${domainAnalysis.webDomain || 'N/A'}). Admin review will verify your employment via corporate ID badge.`}
-                </p>
-              </div>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {/* Email OTP Verification */}
             <div className="rounded-2xl border border-ink/10 bg-paper/50 p-4">
@@ -1237,13 +1206,6 @@ export default function RecruiterOnboarding() {
                   desc: `SMS code verified for ${appData.applicantDetails?.mobileNumber}`,
                   done: Boolean(appData.verification?.phoneVerified),
                   date: appData.verification?.phoneVerifiedAt,
-                },
-                {
-                  label: 'Domain Match Analysis',
-                  desc: appData.verification?.domainMatched
-                    ? 'Corporate domain matched company website'
-                    : 'Manual domain inspection required',
-                  done: Boolean(appData.verification?.domainMatched),
                 },
                 {
                   label: 'Admin Review & Decision',

@@ -263,10 +263,6 @@ export default function RecruiterApplications() {
                         <span className={`inline-block h-2 w-2 rounded-full ${isPhoneVerified ? 'bg-emerald-500' : 'bg-amber-400'}`} />
                         <span className="text-[10px]">Phone OTP: {isPhoneVerified ? 'Verified' : 'Pending'}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`inline-block h-2 w-2 rounded-full ${isDomainMatched ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-                        <span className="text-[10px]">Domain: {isDomainMatched ? 'Matched' : 'Mismatch'}</span>
-                      </div>
                     </td>
 
                     <td className="px-4 py-3.5 space-y-1 text-xs font-mono whitespace-nowrap">
@@ -369,9 +365,6 @@ export default function RecruiterApplications() {
                 </span>
                 <span className={`badge ${selectedApp.verification?.phoneVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                   Phone OTP: {selectedApp.verification?.phoneVerified ? 'Verified' : 'Pending'}
-                </span>
-                <span className={`badge ${selectedApp.verification?.domainMatched ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                  Domain Match: {selectedApp.verification?.domainMatched ? 'Matched' : 'Mismatch'}
                 </span>
               </div>
             </div>
