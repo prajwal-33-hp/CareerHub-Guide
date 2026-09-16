@@ -418,30 +418,40 @@ export default function RecruiterApplications() {
                 <div className="col-span-2"><span className="text-ink-soft">Description:</span> <p className="text-ink mt-0.5 leading-relaxed">{selectedApp.companyDetails?.description}</p></div>
               </div>
 
-              {/* Statutory Numbers */}
-              <div className="mt-4 pt-3.5 border-t border-ink/10">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft block mb-2">
+              {/* Statutory Numbers - Dedicated Separate Rows */}
+              <div className="mt-4 pt-3.5 border-t border-ink/10 space-y-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft block mb-1">
                   Statutory & Regulatory Identifiers
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <div className="rounded-xl border border-ink/10 bg-paper/80 p-2.5 shadow-2xs">
-                    <span className="text-[10px] font-bold text-ink-soft block mb-0.5">Corporate ID (CIN)</span>
-                    <strong className="font-mono text-xs text-ink break-all select-all block">
-                      {selectedApp.companyDetails?.cin || 'Not Applicable'}
-                    </strong>
-                  </div>
-                  <div className="rounded-xl border border-ink/10 bg-paper/80 p-2.5 shadow-2xs">
-                    <span className="text-[10px] font-bold text-ink-soft block mb-0.5">GST Number (GSTIN)</span>
-                    <strong className="font-mono text-xs text-ink break-all select-all block">
-                      {selectedApp.companyDetails?.gstin || 'Not Applicable'}
-                    </strong>
-                  </div>
-                  <div className="rounded-xl border border-ink/10 bg-paper/80 p-2.5 shadow-2xs">
-                    <span className="text-[10px] font-bold text-ink-soft block mb-0.5">LLP ID (LLPIN)</span>
-                    <strong className="font-mono text-xs text-ink break-all select-all block">
-                      {selectedApp.companyDetails?.llpin || 'Not Applicable'}
-                    </strong>
-                  </div>
+
+                {/* Row 1: CIN */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 rounded-xl border border-ink/10 bg-paper/80 px-3.5 py-2.5 shadow-2xs">
+                  <span className="text-xs font-semibold text-ink-soft">
+                    Corporate Identification Number (CIN):
+                  </span>
+                  <span className="font-mono text-xs font-bold text-ink tracking-wide break-all select-all">
+                    {selectedApp.companyDetails?.cin || 'Not Applicable'}
+                  </span>
+                </div>
+
+                {/* Row 2: GSTIN */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 rounded-xl border border-ink/10 bg-paper/80 px-3.5 py-2.5 shadow-2xs">
+                  <span className="text-xs font-semibold text-ink-soft">
+                    GST Identification Number (GSTIN):
+                  </span>
+                  <span className="font-mono text-xs font-bold text-ink tracking-wide break-all select-all">
+                    {selectedApp.companyDetails?.gstin || 'Not Applicable'}
+                  </span>
+                </div>
+
+                {/* Row 3: LLPIN */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 rounded-xl border border-ink/10 bg-paper/80 px-3.5 py-2.5 shadow-2xs">
+                  <span className="text-xs font-semibold text-ink-soft">
+                    Limited Liability Partnership ID (LLPIN):
+                  </span>
+                  <span className="font-mono text-xs font-bold text-ink tracking-wide break-all select-all">
+                    {selectedApp.companyDetails?.llpin || 'Not Applicable'}
+                  </span>
                 </div>
               </div>
             </div>
