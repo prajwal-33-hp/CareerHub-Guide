@@ -158,45 +158,11 @@ async function sendEmail({ to, subject, html, text }) {
     console.log(`[EmailService] ⚡ Email delivered instantly via ${result.provider} to ${to} in ${duration}ms! (ID: ${result.messageId})`)
     return { ...result, duration }
   } catch (err) {
-    console.warn(`[EmailService] Primary dispatches completed notice:`, err.message)
-  }
-
-  // 3. Brevo SMTP (Port 587 - Instant for local dev / unblocked hosts)
-  const brevo = getBrevoTransporter()
-  if (brevo) {
-    try {
-      const mailOptions = { from: fromAddress, to, subject, text: cleanText, html, priority: 'high', headers: highPriorityHeaders }
-      const sendPromise = brevo.sendMail(mailOptions)
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Brevo SMTP timeout')), 3500))
-      const info = await Promise.race([sendPromise, timeoutPromise])
-      const duration = Date.now() - t0
-      console.log(`[EmailService] ⚡ Email delivered via Brevo SMTP to ${to} in ${duration}ms! (ID: ${info.messageId})`)
-      return { success: true, messageId: info.messageId, provider: 'brevo-smtp', duration }
-    } catch (err) {
-      console.warn(`[EmailService] Brevo SMTP notice (${err.message}). Trying Gmail fallback...`)
+    console.error(`[EmailService] All email transports failed for ${to}:`, err.message)
+    return {
+      success: false,
+      error: 'Failed to deliver email. Please ensure your email address is valid.',
     }
-  }
-
-  // 4. Gmail SMTP Fallback
-  const gmail = getGmailTransporter()
-  if (gmail) {
-    try {
-      const mailOptions = { from: `"CareerHub" <prajwalprajwal5674@gmail.com>`, to, subject, text: cleanText, html, priority: 'high', headers: highPriorityHeaders }
-      const sendPromise = gmail.sendMail(mailOptions)
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Gmail SMTP timeout')), 3500))
-      const info = await Promise.race([sendPromise, timeoutPromise])
-      const duration = Date.now() - t0
-      console.log(`[EmailService] ⚡ Email delivered via Gmail SMTP fallback to ${to} in ${duration}ms! (ID: ${info.messageId})`)
-      return { success: true, messageId: info.messageId, provider: 'gmail', duration }
-    } catch (err) {
-      console.warn(`[EmailService] Gmail SMTP notice (${err.message})`)
-    }
-  }
-
-  console.error(`[EmailService] All email transports completed attempt for ${to}`)
-  return {
-    success: false,
-    error: 'Failed to deliver email. Please ensure your email address is valid.',
   }
 }
 
