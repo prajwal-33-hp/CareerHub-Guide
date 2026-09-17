@@ -384,8 +384,8 @@ export default function Login() {
         {forgotStep === 1 ? (
           <form onSubmit={handleSendResetCode} className="space-y-4">
             <p className="text-xs text-ink-soft leading-relaxed">
-              Enter your registered email address. We will verify your account in our database and
-              generate a secure password reset code.
+              Enter your registered email address. We will send a 6-digit verification code directly
+              to your inbox so you can securely choose a new password.
             </p>
 
             {forgotError && (
@@ -419,7 +419,7 @@ export default function Login() {
                 disabled={forgotLoading}
                 className="btn-primary flex-1 text-xs justify-center"
               >
-                {forgotLoading ? 'Verifying…' : 'Verify Account'}
+                {forgotLoading ? 'Sending Verification Code…' : 'Send Verification Code'}
               </button>
             </div>
           </form>
