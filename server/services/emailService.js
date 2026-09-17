@@ -102,10 +102,65 @@ async function sendEmail({ to, subject, html, text }) {
 
   const t0 = Date.now()
   const attempts = {}
+  const isCloudHost = process.env.RENDER === 'true'
 
-  // 1. Primary: Gmail Official SMTP Relay (Google DKIM/SPF authenticated, arrives in Primary Inbox)
-  const gmail = getGmailTransporter()
-  if (gmail) {
+  // Helper for Brevo REST dispatch (HTTPS Port 443 - zero port blocking on Render)
+  async function tryBrevoRest() {
+    const keysToTry = [
+      process.env.BREVO_API_KEY,
+      BREVO_API_KEY,
+    ].filter((k) => k && k.trim().startsWith('xkeysib-'))
+
+    const verifiedSender = 'prajwalprajwal5674@gmail.com'
+
+    for (const key of keysToTry) {
+      try {
+        const bodyPayload = {
+          sender: { name: SENDER_NAME, email: verifiedSender },
+          replyTo: { name: SENDER_NAME, email: verifiedSender },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+          textContent: cleanText,
+          headers: highPriorityHeaders,
+        }
+
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': key.trim(),
+            'Content-Type': 'application/json',
+            accept: 'application/json',
+          },
+          body: JSON.stringify(bodyPayload),
+          signal: AbortSignal.timeout(6000),
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          const duration = Date.now() - t0
+          console.log(`[EmailService] ⚡ Email delivered via Brevo HTTPS to ${to} in ${duration}ms! (ID: ${data.messageId})`)
+          return { success: true, messageId: data.messageId, provider: 'brevo-rest', duration, attempts }
+        } else {
+          const errData = await res.json().catch(() => ({}))
+          attempts.brevoRest = `HTTP ${res.status}: ${errData.message || res.statusText}`
+          console.warn('[EmailService] Brevo key attempt notice:', errData.message || res.statusText)
+        }
+      } catch (err) {
+        attempts.brevoRest = err.message
+        console.warn('[EmailService] Brevo fetch error:', err.message)
+      }
+    }
+    return null
+  }
+
+  // Helper for Gmail SMTP dispatch (Localhost with open port 465)
+  async function tryGmailSmtp() {
+    const gmail = getGmailTransporter()
+    if (!gmail) {
+      attempts.gmailSmtp = 'Gmail transporter not configured'
+      return null
+    }
     try {
       const mailOptions = {
         from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`,
@@ -121,60 +176,33 @@ async function sendEmail({ to, subject, html, text }) {
           if (err) return reject(err)
           resolve(info)
         })
-        setTimeout(() => reject(new Error('Gmail SMTP delivery timed out after 4000ms')), 4000)
+        setTimeout(() => reject(new Error('Gmail SMTP timed out after 3500ms')), 3500)
       })
       const duration = Date.now() - t0
-      console.log(`[EmailService] ⚡ Email delivered directly to Primary Inbox via Gmail SMTP to ${to} in ${duration}ms! (ID: ${info.messageId})`)
+      console.log(`[EmailService] ⚡ Email delivered via Gmail SMTP to ${to} in ${duration}ms! (ID: ${info.messageId})`)
       return { success: true, messageId: info.messageId, provider: 'gmail-smtp', duration, attempts }
     } catch (err) {
       attempts.gmailSmtp = err.message
-      console.warn(`[EmailService] Gmail SMTP notice (${err.message}). Seamlessly failing over to Brevo REST API...`)
+      console.warn(`[EmailService] Gmail SMTP attempt notice (${err.message})...`)
+      return null
     }
-  } else {
-    attempts.gmailSmtp = 'Gmail transporter not configured (missing user or pass)'
   }
 
-  // 2. Secondary Fallback: Brevo HTTPS REST API (Port 443 unblocked cloud delivery)
-  const brevoApiKey = (BREVO_API_KEY || process.env.BREVO_API_KEY || '').trim()
-  if (brevoApiKey && brevoApiKey.startsWith('xkeysib-')) {
-    try {
-      const bodyPayload = {
-        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-        replyTo: { name: SENDER_NAME, email: SENDER_EMAIL },
-        to: [{ email: to }],
-        subject,
-        htmlContent: html,
-        textContent: cleanText,
-        headers: highPriorityHeaders,
-      }
+  // Adaptive Priority:
+  // On Render cloud: Port 465 is blocked by Render firewall -> Use Brevo HTTPS REST API first!
+  // On Local dev: Port 465 is open -> Use Gmail SMTP first for instant Google DKIM inbox delivery!
+  if (isCloudHost) {
+    const cloudRes = await tryBrevoRest()
+    if (cloudRes) return cloudRes
 
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': brevoApiKey,
-          'Content-Type': 'application/json',
-          accept: 'application/json',
-        },
-        body: JSON.stringify(bodyPayload),
-        signal: AbortSignal.timeout(5000),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        const duration = Date.now() - t0
-        console.log(`[EmailService] ⚡ Email delivered via Brevo REST fallback to ${to} in ${duration}ms! (ID: ${data.messageId})`)
-        return { success: true, messageId: data.messageId, provider: 'brevo-rest', duration, attempts }
-      } else {
-        const errData = await res.json().catch(() => ({}))
-        attempts.brevoRest = `HTTP ${res.status}: ${errData.message || res.statusText}`
-        console.warn('[EmailService] Brevo REST notice:', errData.message || res.statusText)
-      }
-    } catch (err) {
-      attempts.brevoRest = err.message
-      console.warn('[EmailService] Brevo REST error:', err.message)
-    }
+    const fallbackSmtp = await tryGmailSmtp()
+    if (fallbackSmtp) return fallbackSmtp
   } else {
-    attempts.brevoRest = 'Brevo API key missing or invalid format'
+    const localRes = await tryGmailSmtp()
+    if (localRes) return localRes
+
+    const fallbackRest = await tryBrevoRest()
+    if (fallbackRest) return fallbackRest
   }
 
   // 3. Tertiary Fallback: Brevo SMTP (Port 587)

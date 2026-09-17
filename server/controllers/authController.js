@@ -205,10 +205,12 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
     lastSentAt: new Date(),
   })
 
-  // 6. Dispatch email in background for sub-second UI response
-  sendSignupOtpEmail(normalizedEmail, otpCode, name || 'User').catch((err) => {
-    console.warn(`[EmailService] Background dispatch notice for ${normalizedEmail}:`, err.message)
-  })
+  // 6. Dispatch email
+  const emailResult = await sendSignupOtpEmail(normalizedEmail, otpCode, name || 'User')
+  if (!emailResult || !emailResult.success) {
+    res.status(500)
+    throw new Error(emailResult?.error || 'Failed to dispatch verification email. Please try again.')
+  }
 
   return res.json({
     success: true,
@@ -378,10 +380,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
   user.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
   await user.save()
 
-  // Dispatch email in background
-  sendPasswordResetEmail(user.email, resetCode, user.name || 'User').catch((err) => {
-    console.warn(`[EmailService] Background password reset notice for ${user.email}:`, err.message)
-  })
+  // Dispatch email
+  const emailResult = await sendPasswordResetEmail(user.email, resetCode, user.name || 'User')
+  if (!emailResult || !emailResult.success) {
+    res.status(500)
+    throw new Error(emailResult?.error || 'Failed to dispatch password reset email. Please try again.')
+  }
 
   return res.json({
     success: true,
