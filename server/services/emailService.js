@@ -97,6 +97,7 @@ async function sendEmail({ to, subject, html, text }) {
     try {
       const bodyPayload = {
         sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+        replyTo: { name: SENDER_NAME, email: SENDER_EMAIL },
         to: [{ email: to }],
         subject,
         htmlContent: html,
