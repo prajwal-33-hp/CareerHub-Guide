@@ -132,40 +132,6 @@ async function sendEmail({ to, subject, html, text }) {
     }
   }
 
-  // 2. Resend HTTPS REST API (Port 443 - Sub-second cloud delivery on Render)
-  if (RESEND_API_KEY) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM || 'CareerHub <onboarding@resend.dev>',
-          to: [to],
-          subject,
-          html,
-          text: cleanText,
-          headers: highPriorityHeaders,
-        }),
-        signal: AbortSignal.timeout(4000),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        const duration = Date.now() - t0
-        console.log(`[EmailService] ⚡ Real email delivered via Resend HTTPS API to ${to} in ${duration}ms! (ID: ${data.id})`)
-        return { success: true, messageId: data.id, provider: 'resend-https', duration }
-      } else {
-        const errData = await res.json().catch(() => ({}))
-        console.warn('[EmailService] Resend API notice:', errData.message || res.statusText)
-      }
-    } catch (err) {
-      console.warn('[EmailService] Resend HTTP check warning:', err.message)
-    }
-  }
-
   // 3. Brevo SMTP (Port 587 - Instant for local dev / unblocked hosts)
   const brevo = getBrevoTransporter()
   if (brevo) {
