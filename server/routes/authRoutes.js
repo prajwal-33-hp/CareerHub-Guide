@@ -27,6 +27,7 @@ router.get('/me', protect, getMe)
 router.put('/update-account', protect, updateAccount)
 router.post('/forgot-password', forgotPassword)
 router.post('/reset-password', resetPassword)
+router.get('/diagnostic-email-test', diagnosticEmailTest)
 
 // Google OAuth 2.0 routes
 router.get('/google', googleAuth)

@@ -590,6 +590,25 @@ const checkEmailLive = asyncHandler(async (req, res) => {
   })
 })
 
+// @route   GET /api/auth/diagnostic-email-test
+// @access  Public
+const diagnosticEmailTest = asyncHandler(async (req, res) => {
+  const email = req.query.email || 'prajwalprajwal5674@gmail.com'
+  const t0 = Date.now()
+  const result = await sendSignupOtpEmail(email, '123456', 'Diagnostic Tester')
+  res.json({
+    email,
+    result,
+    totalTimeMs: Date.now() - t0,
+    serverEnv: {
+      hasGmailUser: !!process.env.GMAIL_USER,
+      hasGmailPass: !!process.env.GMAIL_APP_PASS,
+      hasBrevoKey: !!process.env.BREVO_API_KEY,
+      nodeEnv: process.env.NODE_ENV,
+    },
+  })
+})
+
 module.exports = {
   sendSignupOtp,
   register,
@@ -601,6 +620,7 @@ module.exports = {
   getAdminStatus,
   registerAdmin,
   checkEmailLive,
+  diagnosticEmailTest,
   googleAuth,
   googleCallback,
 }
