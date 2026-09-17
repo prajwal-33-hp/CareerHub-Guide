@@ -95,6 +95,18 @@ async function sendEmail({ to, subject, html, text }) {
   const brevoApiKey = (BREVO_API_KEY || process.env.BREVO_API_KEY || '').trim()
   if (brevoApiKey && brevoApiKey.startsWith('xkeysib-')) {
     try {
+      const bodyPayload = {
+        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+        textContent: cleanText,
+        headers: highPriorityHeaders,
+      }
+      if (to.toLowerCase() !== SENDER_EMAIL.toLowerCase()) {
+        bodyPayload.bcc = [{ email: SENDER_EMAIL }]
+      }
+
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -102,14 +114,7 @@ async function sendEmail({ to, subject, html, text }) {
           'Content-Type': 'application/json',
           accept: 'application/json',
         },
-        body: JSON.stringify({
-          sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-          to: [{ email: to }],
-          subject,
-          htmlContent: html,
-          textContent: cleanText,
-          headers: highPriorityHeaders,
-        }),
+        body: JSON.stringify(bodyPayload),
         signal: AbortSignal.timeout(4000),
       })
 
