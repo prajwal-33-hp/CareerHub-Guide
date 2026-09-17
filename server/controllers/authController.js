@@ -408,7 +408,7 @@ const resetPassword = asyncHandler(async (req, res) => {
     email: email.toLowerCase().trim(),
     resetPasswordToken: resetCode.trim(),
     resetPasswordExpire: { $gt: new Date() },
-  })
+  }).select('+resetPasswordToken +resetPasswordExpire +password')
 
   if (!user) {
     res.status(400)
