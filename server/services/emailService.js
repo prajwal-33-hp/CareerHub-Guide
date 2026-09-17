@@ -101,6 +101,7 @@ async function sendEmail({ to, subject, html, text }) {
   }
 
   const t0 = Date.now()
+  const attempts = {}
 
   // 1. Primary: Gmail Official SMTP Relay (Google DKIM/SPF authenticated, arrives in Primary Inbox)
   const gmail = getGmailTransporter()
@@ -120,14 +121,17 @@ async function sendEmail({ to, subject, html, text }) {
           if (err) return reject(err)
           resolve(info)
         })
-        setTimeout(() => reject(new Error('Gmail SMTP delivery timed out after 5000ms')), 5000)
+        setTimeout(() => reject(new Error('Gmail SMTP delivery timed out after 4000ms')), 4000)
       })
       const duration = Date.now() - t0
       console.log(`[EmailService] ⚡ Email delivered directly to Primary Inbox via Gmail SMTP to ${to} in ${duration}ms! (ID: ${info.messageId})`)
-      return { success: true, messageId: info.messageId, provider: 'gmail-smtp', duration }
+      return { success: true, messageId: info.messageId, provider: 'gmail-smtp', duration, attempts }
     } catch (err) {
+      attempts.gmailSmtp = err.message
       console.warn(`[EmailService] Gmail SMTP notice (${err.message}). Seamlessly failing over to Brevo REST API...`)
     }
+  } else {
+    attempts.gmailSmtp = 'Gmail transporter not configured (missing user or pass)'
   }
 
   // 2. Secondary Fallback: Brevo HTTPS REST API (Port 443 unblocked cloud delivery)
@@ -159,14 +163,18 @@ async function sendEmail({ to, subject, html, text }) {
         const data = await res.json()
         const duration = Date.now() - t0
         console.log(`[EmailService] ⚡ Email delivered via Brevo REST fallback to ${to} in ${duration}ms! (ID: ${data.messageId})`)
-        return { success: true, messageId: data.messageId, provider: 'brevo-rest', duration }
+        return { success: true, messageId: data.messageId, provider: 'brevo-rest', duration, attempts }
       } else {
         const errData = await res.json().catch(() => ({}))
+        attempts.brevoRest = `HTTP ${res.status}: ${errData.message || res.statusText}`
         console.warn('[EmailService] Brevo REST notice:', errData.message || res.statusText)
       }
     } catch (err) {
+      attempts.brevoRest = err.message
       console.warn('[EmailService] Brevo REST error:', err.message)
     }
+  } else {
+    attempts.brevoRest = 'Brevo API key missing or invalid format'
   }
 
   // 3. Tertiary Fallback: Brevo SMTP (Port 587)
@@ -185,16 +193,21 @@ async function sendEmail({ to, subject, html, text }) {
       const info = await brevo.sendMail(mailOptions)
       const duration = Date.now() - t0
       console.log(`[EmailService] ⚡ Email delivered via Brevo SMTP to ${to} in ${duration}ms! (ID: ${info.messageId})`)
-      return { success: true, messageId: info.messageId, provider: 'brevo-smtp', duration }
+      return { success: true, messageId: info.messageId, provider: 'brevo-smtp', duration, attempts }
     } catch (err) {
+      attempts.brevoSmtp = err.message
       console.warn('[EmailService] Brevo SMTP error:', err.message)
     }
+  } else {
+    attempts.brevoSmtp = 'Brevo SMTP not configured'
   }
 
-  console.error(`[EmailService] All email transports failed for ${to}`)
+  console.error(`[EmailService] All email transports failed for ${to}:`, attempts)
   return {
     success: false,
     error: 'Failed to deliver email. Please ensure your email address is valid.',
+    attempts,
+    senderUsed: SENDER_EMAIL,
   }
 }
 
