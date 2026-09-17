@@ -10,6 +10,7 @@ const {
   getAdminStatus,
   registerAdmin,
   checkEmailLive,
+  diagnosticEmailTest,
   googleAuth,
   googleCallback,
 } = require('../controllers/authController')
