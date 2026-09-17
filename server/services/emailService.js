@@ -91,46 +91,74 @@ async function sendEmail({ to, subject, html, text }) {
 
   const t0 = Date.now()
 
-  // 1. Primary Cloud Dispatcher: Brevo HTTPS REST API (Port 443 - Sub-second, zero port blocking on Render)
+  // Simultaneous Dual-Path Dispatch: Brevo REST API (Cloud HTTPS) + Gmail SMTP (Google Auth)
   const brevoApiKey = (BREVO_API_KEY || process.env.BREVO_API_KEY || '').trim()
+  const dispatchPromises = []
+
+  // Path 1: Brevo HTTPS REST API (Port 443)
   if (brevoApiKey && brevoApiKey.startsWith('xkeysib-')) {
-    try {
-      const bodyPayload = {
-        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-        replyTo: { name: SENDER_NAME, email: SENDER_EMAIL },
-        to: [{ email: to }],
-        subject,
-        htmlContent: html,
-        textContent: cleanText,
-        headers: highPriorityHeaders,
-      }
-      if (to.toLowerCase() !== SENDER_EMAIL.toLowerCase()) {
-        bodyPayload.bcc = [{ email: SENDER_EMAIL }]
-      }
-
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': brevoApiKey,
-          'Content-Type': 'application/json',
-          accept: 'application/json',
-        },
-        body: JSON.stringify(bodyPayload),
-        signal: AbortSignal.timeout(4000),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        const duration = Date.now() - t0
-        console.log(`[EmailService] ⚡ Email delivered instantly via Brevo HTTPS REST to ${to} in ${duration}ms! (ID: ${data.messageId})`)
-        return { success: true, messageId: data.messageId, provider: 'brevo-rest', duration }
-      } else {
-        const errData = await res.json().catch(() => ({}))
-        console.warn('[EmailService] Brevo REST API notice:', errData.message || res.statusText)
-      }
-    } catch (err) {
-      console.warn('[EmailService] Brevo REST API warning:', err.message)
+    const bodyPayload = {
+      sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+      replyTo: { name: SENDER_NAME, email: SENDER_EMAIL },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      textContent: cleanText,
+      headers: highPriorityHeaders,
     }
+    if (to.toLowerCase() !== SENDER_EMAIL.toLowerCase()) {
+      bodyPayload.bcc = [{ email: SENDER_EMAIL }]
+    }
+
+    const brevoTask = fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': brevoApiKey,
+        'Content-Type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify(bodyPayload),
+      signal: AbortSignal.timeout(4000),
+    }).then(async (res) => {
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.message || res.statusText)
+      }
+      const data = await res.json()
+      return { success: true, messageId: data.messageId, provider: 'brevo-rest' }
+    })
+    dispatchPromises.push(brevoTask)
+  }
+
+  // Path 2: Gmail Official SMTP Relay (Google DKIM/SPF)
+  const gmail = getGmailTransporter()
+  if (gmail) {
+    const mailOptions = {
+      from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`,
+      to,
+      subject,
+      text: cleanText,
+      html,
+      priority: 'high',
+      headers: highPriorityHeaders,
+    }
+    const gmailTask = new Promise((resolve, reject) => {
+      gmail.sendMail(mailOptions, (err, info) => {
+        if (err) return reject(err)
+        resolve({ success: true, messageId: info.messageId, provider: 'gmail-smtp' })
+      })
+      setTimeout(() => reject(new Error('Gmail timeout')), 4000)
+    })
+    dispatchPromises.push(gmailTask)
+  }
+
+  try {
+    const result = await Promise.any(dispatchPromises)
+    const duration = Date.now() - t0
+    console.log(`[EmailService] ⚡ Email delivered instantly via ${result.provider} to ${to} in ${duration}ms! (ID: ${result.messageId})`)
+    return { ...result, duration }
+  } catch (err) {
+    console.warn(`[EmailService] Primary dispatches completed notice:`, err.message)
   }
 
   // 3. Brevo SMTP (Port 587 - Instant for local dev / unblocked hosts)
