@@ -122,43 +122,76 @@ function initSocket(server, allowedOrigins) {
     })
 
     // --- WebRTC 1-to-1 Live Video Interview Signaling ---
-    socket.on('join_interview_room', ({ roomId }) => {
+    socket.on('join_interview_room', ({ roomId, user: clientUser }) => {
       if (!roomId) return
       const roomName = `interview_${roomId}`
+
+      const userInfo = {
+        _id: socket.user?._id || socket.id,
+        name: clientUser?.name || socket.user?.name || 'Participant',
+        role: clientUser?.role || socket.user?.role || 'student',
+        photoUrl: clientUser?.photoUrl || socket.user?.photoUrl,
+      }
+      socket.data = socket.data || {}
+      socket.data.interviewUser = userInfo
+
+      // Find existing sockets in room before joining
+      const existingSocketIds = Array.from(io.sockets.adapter.rooms.get(roomName) || []).filter(
+        (id) => id !== socket.id
+      )
+
       socket.join(roomName)
 
       // Notify others in the room that a peer joined
       socket.to(roomName).emit('user_joined_interview', {
         socketId: socket.id,
-        user: {
-          _id: socket.user._id,
-          name: socket.user.name,
-          role: socket.user.role,
-          photoUrl: socket.user.photoUrl,
-        },
+        user: userInfo,
       })
+
+      // Send existing peers to newly joined socket
+      if (existingSocketIds.length > 0) {
+        const existingUsers = existingSocketIds.map((id) => {
+          const s = io.sockets.sockets.get(id)
+          return {
+            socketId: id,
+            user: s?.data?.interviewUser || {
+              _id: s?.user?._id || id,
+              name: s?.user?.name || 'Peer',
+              role: s?.user?.role || 'recruiter',
+              photoUrl: s?.user?.photoUrl,
+            },
+          }
+        })
+        socket.emit('room_existing_users', { users: existingUsers })
+      }
     })
 
-    socket.on('webrtc_offer', ({ to, offer }) => {
+    socket.on('webrtc_offer', ({ to, offer, user: clientUser }) => {
       if (to && offer) {
         io.to(to).emit('webrtc_offer', {
           from: socket.id,
           offer,
-          user: {
-            _id: socket.user._id,
-            name: socket.user.name,
-            role: socket.user.role,
-            photoUrl: socket.user.photoUrl,
+          user: clientUser || socket.data?.interviewUser || {
+            _id: socket.user?._id,
+            name: socket.user?.name,
+            role: socket.user?.role,
+            photoUrl: socket.user?.photoUrl,
           },
         })
       }
     })
 
-    socket.on('webrtc_answer', ({ to, answer }) => {
+    socket.on('webrtc_answer', ({ to, answer, user: clientUser }) => {
       if (to && answer) {
         io.to(to).emit('webrtc_answer', {
           from: socket.id,
           answer,
+          user: clientUser || socket.data?.interviewUser || {
+            _id: socket.user?._id,
+            name: socket.user?.name,
+            role: socket.user?.role,
+            photoUrl: socket.user?.photoUrl,
+          },
         })
       }
     })
@@ -198,22 +231,23 @@ function initSocket(server, allowedOrigins) {
       socket.leave(roomName)
       socket.to(roomName).emit('user_left_interview', {
         socketId: socket.id,
-        user: socket.user,
+        user: socket.data?.interviewUser || socket.user,
       })
     })
 
-    socket.on('disconnect', () => {
-      // Broadcast user left to any interview rooms they might have been in
-      const rooms = Array.from(socket.rooms || [])
-      rooms.forEach((room) => {
+    socket.on('disconnecting', () => {
+      // Broadcast user left to any interview rooms they were in before rooms are cleared
+      for (const room of socket.rooms) {
         if (room.startsWith('interview_')) {
           socket.to(room).emit('user_left_interview', {
             socketId: socket.id,
-            user: socket.user,
+            user: socket.data?.interviewUser || socket.user,
           })
         }
-      })
+      }
+    })
 
+    socket.on('disconnect', () => {
       const userSockets = onlineUsers.get(userId)
       if (userSockets) {
         userSockets.delete(socket.id)
